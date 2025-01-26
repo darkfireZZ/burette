@@ -148,6 +148,22 @@ impl Cli {
 
                 library.add_document(path, metadata)
             }
+            Command::List => {
+                // TODO: This should be replaced with a more robust implementation
+                let library_path = self.library_path()?;
+                let library = Library::open(library_path)?;
+                for doc in library.documents()? {
+                    print!("{}: {}", doc.hash().to_short_string(), doc.title());
+                    let mut authors = doc.authors();
+                    if let Some(author) = authors.next() {
+                        print!(" - {}", author);
+                        for author in authors {
+                            print!(", {}", author);
+                        }
+                    }
+                }
+                Ok(())
+            }
             Command::New => {
                 let library_path = self.library_path()?;
                 Library::new(library_path)?;
@@ -159,11 +175,13 @@ impl Cli {
 
 #[derive(Debug, Subcommand)]
 enum Command {
-    /// Create a new library
-    New,
     /// Add a new document to the library
     Add {
         /// The path to the document to add
         path: PathBuf,
     },
+    /// List all documents in the library
+    List,
+    /// Create a new library
+    New,
 }

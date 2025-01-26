@@ -5,7 +5,7 @@ use {
     serde::{Deserialize, Serialize},
     sha2::{Digest, Sha256},
     std::{
-        fmt::{self, Debug, Display, Formatter},
+        fmt::{self, Debug, Display, Formatter, Write},
         io::{self, Read},
         str::FromStr,
     },
@@ -27,6 +27,19 @@ fn hex_digit(byte: u8) -> anyhow::Result<u8> {
 }
 
 impl Hash {
+    const SHORT_STRING_LENGTH: usize = 12;
+
+    /// Returns a short string representation of the hash.
+    ///
+    /// This is useful for displaying the hash in a user interface.
+    pub fn to_short_string(&self) -> String {
+        let mut result = String::with_capacity(Self::SHORT_STRING_LENGTH);
+        for byte in &self.bytes[..Self::SHORT_STRING_LENGTH / 2] {
+            write!(result, "{:02x}", byte).expect("Writing to string cannot fail");
+        }
+        result
+    }
+
     /// Creates a new [`struct@Hash`] object from a hex-encoded string.
     ///
     /// # Errors

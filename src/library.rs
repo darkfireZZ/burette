@@ -199,13 +199,13 @@ impl Library {
                 bail!(
                     "Document with ISBN {} already exists ({})",
                     isbn,
-                    &doc.hash.to_string()[..8]
+                    doc.hash.to_short_string()
                 );
             }
             if doc.hash == hash {
                 bail!(
                     "Document is already in the library ({})",
-                    &hash.to_string()[..8]
+                    doc.hash.to_short_string()
                 );
             }
         }
@@ -243,6 +243,12 @@ impl Library {
         Ok(())
     }
 
+    /// Iterate over the metadata of all documents in the library.
+    pub fn documents(&self) -> anyhow::Result<impl Iterator<Item = IndexEntry>> {
+        let index_path = self.index_path();
+        Ok(LibraryIndex::open(&index_path)?.documents.into_iter())
+    }
+
     pub fn validate(&self) -> anyhow::Result<()> {
         unimplemented!()
     }
@@ -259,10 +265,37 @@ struct LibraryIndex {
 
 /// An entry in the index of the document library.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-struct IndexEntry {
+pub struct IndexEntry {
     hash: sha256::Hash,
     #[serde(flatten)]
     metadata: DocMetadata,
+}
+
+impl IndexEntry {
+    /// Return the hash of the document.
+    pub fn hash(&self) -> &sha256::Hash {
+        &self.hash
+    }
+
+    /// Return the title of the document.
+    pub fn title(&self) -> &str {
+        &self.metadata.title
+    }
+
+    /// Return the authors of the document.
+    pub fn authors(&self) -> impl Iterator<Item = &str> {
+        self.metadata.authors.iter().map(|s| s.as_str())
+    }
+
+    /// Return the ISBNs of the document.
+    pub fn isbns(&self) -> impl Iterator<Item = &Isbn13> {
+        self.metadata.isbns.iter()
+    }
+
+    /// Return the file format of the document.
+    pub fn file_format(&self) -> FileFormat {
+        self.metadata.file_format
+    }
 }
 
 impl LibraryIndex {
