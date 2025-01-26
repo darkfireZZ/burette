@@ -1,32 +1,51 @@
 //! Rust library for `burette`, a document library manager.
 
-#![deny(missing_debug_implementations, missing_docs)]
+#![warn(
+    clippy::todo,
+    clippy::unimplemented,
+    clippy::unwrap_used,
+    missing_debug_implementations,
+    missing_docs
+)]
 
 use {
-    anyhow::anyhow,
+    anyhow::{anyhow, bail, Context},
     serde::{Deserialize, Serialize},
     std::{
-        fmt::{self, Display, Formatter},
+        env,
+        fmt::{self, Debug, Display, Formatter},
+        path::{Path, PathBuf},
         str::FromStr,
     },
 };
 
 pub mod cli;
-mod isbn;
+pub mod sha256;
 
+mod library;
+pub use library::*;
+
+mod isbn;
 pub use isbn::Isbn13;
 
-/// Metadata for a document stored in the library.
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-pub struct DocMetadata {
-    title: String,
-    authors: Vec<String>,
-    isbn: Vec<Isbn13>,
-    file_format: FileFormat,
+/// Return the home directory of the current user.
+fn home_dir() -> anyhow::Result<PathBuf> {
+    let home_dir =
+        env::var_os("HOME").ok_or_else(|| anyhow!("Failed to read HOME environment variable"))?;
+    Ok(PathBuf::from(home_dir))
+}
+
+/// Return the location of the default library directory.
+///
+/// The default library directory is `$HOME/.book-store`.
+pub fn default_library_dir() -> anyhow::Result<PathBuf> {
+    Ok(home_dir()
+        .context("Failed to determine library directory")?
+        .join(".book-store"))
 }
 
 /// File formats.
-#[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum FileFormat {
     /// EPUB file format.
     Epub,
@@ -63,11 +82,34 @@ impl FileFormat {
             Self::Pdf => "application/pdf",
         }
     }
+
+    /// Determines the file format from a file.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the file format cannot be determined due to IO errors or if the file
+    /// format is not recognized.
+    pub fn from_path<P: AsRef<Path>>(path: P) -> anyhow::Result<Self> {
+        let format = file_format::FileFormat::from_file(&path).with_context(|| {
+            format!(
+                "Failed to determine file format for {}",
+                path.as_ref().display()
+            )
+        })?;
+        Ok(match format {
+            file_format::FileFormat::ElectronicPublication => Self::Epub,
+            file_format::FileFormat::PortableDocumentFormat => Self::Pdf,
+            _ => bail!(
+                "Unsupported file format: {}",
+                format.short_name().unwrap_or(format.name())
+            ),
+        })
+    }
 }
 
 impl Display for FileFormat {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        self.mime_type().fmt(f)
+        Display::fmt(self.mime_type(), f)
     }
 }
 
@@ -76,5 +118,18 @@ impl FromStr for FileFormat {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Self::from_mime_type(s)
+    }
+}
+
+impl Serialize for FileFormat {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.mime_type())
+    }
+}
+
+impl<'de> Deserialize<'de> for FileFormat {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let s = String::deserialize(deserializer)?;
+        Self::from_mime_type(&s).map_err(serde::de::Error::custom)
     }
 }
