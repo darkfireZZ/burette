@@ -1,6 +1,7 @@
 //! Rust library for `burette`, a document library manager.
 
 #![warn(
+    clippy::absolute_paths,
     clippy::dbg_macro,
     clippy::panic,
     clippy::todo,
@@ -12,7 +13,7 @@
 
 use {
     anyhow::{anyhow, bail, Context},
-    serde::{Deserialize, Serialize},
+    serde::{de::Error, Deserialize, Serialize},
     std::{
         env,
         fmt::{self, Debug, Display, Formatter},
@@ -154,6 +155,6 @@ impl Serialize for FileFormat {
 impl<'de> Deserialize<'de> for FileFormat {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let s = String::deserialize(deserializer)?;
-        Self::from_mime_type(&s).map_err(serde::de::Error::custom)
+        Self::from_mime_type(&s).map_err(Error::custom)
     }
 }

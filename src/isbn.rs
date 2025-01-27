@@ -1,6 +1,6 @@
 use {
     anyhow::bail,
-    serde::{Deserialize, Deserializer, Serialize, Serializer},
+    serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer},
     std::{
         fmt::{self, Display, Formatter},
         str::FromStr,
@@ -25,7 +25,7 @@ impl<'de> Deserialize<'de> for Isbn13 {
         D: Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        Isbn13::from_str(&s).map_err(serde::de::Error::custom)
+        Isbn13::from_str(&s).map_err(Error::custom)
     }
 }
 

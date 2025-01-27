@@ -2,7 +2,7 @@
 
 use {
     anyhow::anyhow,
-    serde::{Deserialize, Serialize},
+    serde::{de::Error, Deserialize, Serialize},
     sha2::{Digest, Sha256},
     std::{
         fmt::{self, Debug, Display, Formatter, Write},
@@ -94,7 +94,7 @@ impl Serialize for Hash {
 impl<'de> Deserialize<'de> for Hash {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let s = String::deserialize(deserializer)?;
-        Self::from_hex(&s).map_err(serde::de::Error::custom)
+        Self::from_hex(&s).map_err(Error::custom)
     }
 }
 

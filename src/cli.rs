@@ -5,9 +5,12 @@ use {
     anyhow::{bail, Context},
     clap::{Parser, Subcommand},
     std::{
+        fmt::Display,
         fs,
         io::{self, Write},
         path::PathBuf,
+        process,
+        str::FromStr,
     },
 };
 
@@ -24,14 +27,14 @@ pub fn run() {
     let cli = Cli::parse();
     if let Err(error) = cli.run() {
         eprintln!("Error: {:#}", error);
-        std::process::exit(1);
+        process::exit(1);
     }
 }
 
 fn stdin_read_input<T>(prompt: &str) -> anyhow::Result<T>
 where
-    T: std::str::FromStr,
-    T::Err: std::fmt::Display,
+    T: FromStr,
+    T::Err: Display,
 {
     loop {
         print!("{}: ", prompt);
