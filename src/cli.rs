@@ -148,6 +148,15 @@ impl Cli {
 
                 library.add_document(path, metadata)
             }
+            Command::Get {
+                hash_prefix,
+                output,
+            } => {
+                let library_path = self.library_path()?;
+                let library = Library::open(library_path)?;
+                library.retrieve_document(hash_prefix, output.as_ref())?;
+                Ok(())
+            }
             Command::List => {
                 // TODO: This should be replaced with a more robust implementation
                 let library_path = self.library_path()?;
@@ -236,6 +245,14 @@ enum Command {
     },
     /// List all documents in the library
     List,
+    /// Retrieve a document from the library
+    Get {
+        /// Hash prefix of the document to retrieve
+        hash_prefix: String,
+        /// Path to save the document to
+        #[clap(long, short)]
+        output: Option<PathBuf>,
+    },
     /// Create a new library
     New,
     /// Remove documents from the library

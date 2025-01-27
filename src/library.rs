@@ -6,6 +6,7 @@ use {
         collections::HashSet,
         env,
         fs::{self, File},
+        iter,
         path::{Path, PathBuf},
     },
 };
@@ -244,6 +245,76 @@ impl Library {
         Ok(())
     }
 
+    /// Retrieve a document from the library.
+    ///
+    /// The document matching the given hash prefix is copied to the specified output path.
+    /// If the output path is `None`, the document is copied to the current working directory.
+    /// If multiple or no documents match the hash prefix, an error is returned.
+    ///
+    /// # Errors
+    ///
+    /// An error will be returned in any of the following cases:
+    /// - The file at the output path already exists.
+    /// - Multiple documents match the hash prefix.
+    /// - No documents match the hash prefix.
+    /// - The index file cannot be read.
+    /// - The document cannot be copied to the output path.
+    pub fn retrieve_document<P: AsRef<Path>>(
+        &self,
+        hash_prefix: &str,
+        out_path: Option<P>,
+    ) -> anyhow::Result<IndexEntry> {
+        let index_path = self.index_path();
+        let index = LibraryIndex::open(&index_path)?;
+
+        let mut matches = index.find_all_hashes(iter::once(hash_prefix));
+
+        let found = matches.found.pop();
+        let ambiguous = matches.ambiguous.pop();
+        let not_found = matches.not_found.pop();
+
+        assert_eq!(matches.found.len(), 0);
+        assert_eq!(matches.ambiguous.len(), 0);
+        assert_eq!(matches.not_found.len(), 0);
+
+        match (found, ambiguous, not_found) {
+            (Some(entry), None, None) => {
+                let out_path = match out_path {
+                    Some(p) => p.as_ref().to_owned(),
+                    None => PathBuf::from(entry.default_file_name()),
+                };
+                let exists = out_path.try_exists().with_context(|| {
+                    format!(
+                        "Could not determine if output file exists at {}",
+                        out_path.display()
+                    )
+                })?;
+                if exists {
+                    bail!("Output file {} already exists", out_path.display());
+                }
+                let store_path = self.document_store_dir().join(entry.hash().to_string());
+                fs::copy(&store_path, &out_path).with_context(|| {
+                    format!(
+                        "Failed to copy document from {} to {}",
+                        store_path.display(),
+                        out_path.display()
+                    )
+                })?;
+                Ok(entry.clone())
+            }
+            (None, Some(ambiguous), None) => {
+                bail!(
+                    "Multiple documents match hash prefix {}",
+                    ambiguous.hash_prefix,
+                );
+            }
+            (None, None, Some(hash_prefix)) => {
+                bail!("No documents match hash prefix {}", hash_prefix);
+            }
+            _ => unreachable!(),
+        }
+    }
+
     /// Iterate over the metadata of all documents in the library.
     pub fn documents(&self) -> anyhow::Result<impl Iterator<Item = IndexEntry>> {
         let index_path = self.index_path();
@@ -398,6 +469,14 @@ pub struct IndexEntry {
 }
 
 impl IndexEntry {
+    /// Return the default file name for the document.
+    pub fn default_file_name(&self) -> String {
+        let mut file_name = crate::format_as_file_name(self.title());
+        file_name.push('.');
+        file_name.push_str(self.file_format().extension());
+        file_name
+    }
+
     /// Return the hash of the document.
     pub fn hash(&self) -> &sha256::Hash {
         &self.hash

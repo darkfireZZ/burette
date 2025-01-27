@@ -30,6 +30,28 @@ pub use library::*;
 mod isbn;
 pub use isbn::Isbn13;
 
+/// Format a string into a format suitable for use as a file name.
+pub fn format_as_file_name(s: &str) -> String {
+    let mut result = String::with_capacity(s.len());
+    let mut prev_was_whitespace = true;
+    for c in s.chars() {
+        match c {
+            'a'..='z' | 'A'..='Z' | '0'..='9' => {
+                result.push(c.to_ascii_lowercase());
+                prev_was_whitespace = false;
+            }
+            c if c == '-' || c == '_' || c.is_whitespace() => {
+                if !prev_was_whitespace {
+                    result.push('_');
+                }
+                prev_was_whitespace = true;
+            }
+            _ => {}
+        }
+    }
+    result
+}
+
 /// Return the home directory of the current user.
 fn home_dir() -> anyhow::Result<PathBuf> {
     let home_dir =
