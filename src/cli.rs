@@ -169,6 +169,60 @@ impl Cli {
                 Library::new(library_path)?;
                 Ok(())
             }
+            Command::Remove { hash_prefixes } => {
+                let library_path = self.library_path()?;
+                let library = Library::open(library_path)?;
+                let hash_prefixes = hash_prefixes.iter().map(String::as_str);
+                let results = library.remove_all(hash_prefixes)?;
+
+                let mut printed = false;
+
+                if !results.removed().is_empty() {
+                    println!("Removed documents:");
+                    for doc in results.removed() {
+                        println!("{}: {}", doc.hash().to_short_string(), doc.title());
+                    }
+                    printed = true;
+                }
+
+                if !results.not_found().is_empty() {
+                    if printed {
+                        println!();
+                    }
+                    println!("Documents not found:");
+                    for hash_prefix in results.not_found() {
+                        println!("{}", hash_prefix);
+                    }
+                    printed = true;
+                }
+
+                if !results.ambiguous().is_empty() {
+                    if printed {
+                        println!();
+                    }
+                    println!("Ambiguous hash prefixes:");
+                    for ambiguous in results.ambiguous() {
+                        println!("{}", ambiguous.hash_prefix());
+                    }
+                    printed = true;
+                }
+
+                if !results.errors().is_empty() {
+                    if printed {
+                        eprintln!();
+                    }
+                    eprintln!("Errors:");
+                    for error in results.errors() {
+                        eprintln!(
+                            "{}: {}",
+                            error.entry().hash().to_short_string(),
+                            error.error()
+                        );
+                    }
+                }
+
+                Ok(())
+            }
         }
     }
 }
@@ -184,4 +238,15 @@ enum Command {
     List,
     /// Create a new library
     New,
+    /// Remove documents from the library
+    Remove {
+        /// Hash prefixes of the documents to remove
+        ///
+        /// All documents with a hash that starts with one of the given prefixes will be removed.
+        /// If a document matches multiple prefixes, it will not be removed and instead a message
+        /// will be printed to standard error.
+        // This ensures that the user must provide at least one hash prefix.
+        #[arg(required = true, num_args = 1..)]
+        hash_prefixes: Vec<String>,
+    },
 }

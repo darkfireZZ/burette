@@ -1,6 +1,8 @@
 //! Rust library for `burette`, a document library manager.
 
 #![warn(
+    clippy::dbg_macro,
+    clippy::panic,
     clippy::todo,
     clippy::unimplemented,
     clippy::unwrap_used,
