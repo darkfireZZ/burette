@@ -170,6 +170,7 @@ impl Cli {
                             print!(", {}", author);
                         }
                     }
+                    println!();
                 }
                 Ok(())
             }
