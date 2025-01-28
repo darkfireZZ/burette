@@ -1,9 +1,13 @@
 
 .PHONY: check
-check: lint format-check doc-check test
+check: lint format-check doc-check unit_tests system_tests
 
-.PHONY: test
-test:
+.PHONY: system_tests
+system_tests:
+	bash system_tests/runner.sh
+
+.PHONY: unit_tests
+unit_tests:
 	cargo test
 
 .PHONY: lint
