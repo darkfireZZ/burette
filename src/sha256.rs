@@ -32,10 +32,11 @@ impl Hash {
     /// Returns a short string representation of the hash.
     ///
     /// This is useful for displaying the hash in a user interface.
+    #[must_use]
     pub fn to_short_string(&self) -> String {
         let mut result = String::with_capacity(Self::SHORT_STRING_LENGTH);
         for byte in &self.bytes[..Self::SHORT_STRING_LENGTH / 2] {
-            write!(result, "{:02x}", byte).expect("Writing to string cannot fail");
+            write!(result, "{byte:02x}").expect("Writing to string cannot fail");
         }
         result
     }
@@ -72,7 +73,7 @@ impl Debug for Hash {
 impl Display for Hash {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         for byte in &self.bytes {
-            write!(f, "{:02x}", byte)?;
+            write!(f, "{byte:02x}")?;
         }
         Ok(())
     }

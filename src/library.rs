@@ -276,9 +276,9 @@ impl Library {
         let ambiguous = matches.ambiguous.pop();
         let not_found = matches.not_found.pop();
 
-        assert_eq!(matches.found.len(), 0);
-        assert_eq!(matches.ambiguous.len(), 0);
-        assert_eq!(matches.not_found.len(), 0);
+        debug_assert_eq!(matches.found.len(), 0);
+        debug_assert_eq!(matches.ambiguous.len(), 0);
+        debug_assert_eq!(matches.not_found.len(), 0);
 
         match (found, ambiguous, not_found) {
             (Some(entry), None, None) => {
@@ -319,6 +319,10 @@ impl Library {
     }
 
     /// Iterate over the metadata of all documents in the library.
+    ///
+    /// # Errors
+    ///
+    /// This function returns an error if the index file cannot be read.
     pub fn documents(&self) -> anyhow::Result<impl Iterator<Item = IndexEntry>> {
         let index_path = self.index_path();
         Ok(LibraryIndex::open(&index_path)?.documents.into_iter())
@@ -351,7 +355,11 @@ impl Library {
         let matches = index.find_all_hashes(hash_prefixes);
 
         let not_found = matches.not_found;
-        let ambiguous = matches.ambiguous.iter().map(|m| m.to_owned()).collect();
+        let ambiguous = matches
+            .ambiguous
+            .iter()
+            .map(AmbiguousHashMatch::to_owned)
+            .collect();
 
         // This could be a HashSet, but we expect the number of documents to be small, so a Vec is
         // fine.
@@ -415,21 +423,25 @@ pub struct RemovalResults<'a> {
 
 impl<'a> RemovalResults<'a> {
     /// Entries that could not be removed because multiple documents matched the hash prefix.
+    #[must_use]
     pub fn ambiguous(&self) -> &[AmbiguousHashMatchOwned<'a>] {
         &self.ambiguous
     }
 
     /// Entries that could not be removed due to an error.
+    #[must_use]
     pub fn errors(&self) -> &[RemovalError] {
         &self.errors
     }
 
     /// Hashes that could not be found in the library.
+    #[must_use]
     pub fn not_found(&self) -> &[&'a str] {
         &self.not_found
     }
 
     /// Entries that were successfully removed from the library.
+    #[must_use]
     pub fn removed(&self) -> &[IndexEntry] {
         &self.removed
     }
@@ -444,11 +456,13 @@ pub struct RemovalError {
 
 impl RemovalError {
     /// Get the entry that could not be removed.
+    #[must_use]
     pub fn entry(&self) -> &IndexEntry {
         &self.entry
     }
 
     /// Get the error that occurred when trying to remove the entry.
+    #[must_use]
     pub fn error(&self) -> &anyhow::Error {
         &self.error
     }
@@ -473,6 +487,7 @@ pub struct IndexEntry {
 
 impl IndexEntry {
     /// Return the default file name for the document.
+    #[must_use]
     pub fn default_file_name(&self) -> String {
         let mut file_name = crate::format_as_file_name(self.title());
         file_name.push('.');
@@ -481,18 +496,20 @@ impl IndexEntry {
     }
 
     /// Return the hash of the document.
+    #[must_use]
     pub fn hash(&self) -> &sha256::Hash {
         &self.hash
     }
 
     /// Return the title of the document.
+    #[must_use]
     pub fn title(&self) -> &str {
         &self.metadata.title
     }
 
     /// Return the authors of the document.
     pub fn authors(&self) -> impl Iterator<Item = &str> {
-        self.metadata.authors.iter().map(|s| s.as_str())
+        self.metadata.authors.iter().map(String::as_str)
     }
 
     /// Return the ISBNs of the document.
@@ -501,6 +518,7 @@ impl IndexEntry {
     }
 
     /// Return the file format of the document.
+    #[must_use]
     pub fn file_format(&self) -> FileFormat {
         self.metadata.file_format
     }
@@ -624,11 +642,13 @@ pub struct AmbiguousHashMatchOwned<'hash> {
 
 impl<'hash> AmbiguousHashMatchOwned<'hash> {
     /// The hash prefix that matched multiple documents.
+    #[must_use]
     pub fn hash_prefix(&self) -> &'hash str {
         self.hash_prefix
     }
 
     /// The documents that matched the hash prefix.
+    #[must_use]
     pub fn matches(&self) -> &[IndexEntry] {
         &self.matches
     }

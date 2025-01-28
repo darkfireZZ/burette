@@ -35,7 +35,7 @@ impl Display for Isbn13 {
         // However, the size of the groups delimited by hyphens is not fixed, which makes
         // formatting a real pain. So we'll just print the digits without hyphens.
         for digit in &self.digits {
-            write!(f, "{}", digit)?;
+            write!(f, "{digit}")?;
         }
         Ok(())
     }
@@ -53,7 +53,10 @@ impl FromStr for Isbn13 {
                 if count == 13 {
                     bail!("ISBN-13 is too long");
                 }
-                digits[count] = d as u8;
+                #[allow(clippy::cast_possible_truncation, reason = "0-9 is always in range")]
+                {
+                    digits[count] = d as u8;
+                }
                 checksum += if count % 2 == 0 { d } else { d * 3 };
                 count += 1;
             } else if c == '-' {

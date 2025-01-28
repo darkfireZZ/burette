@@ -1,6 +1,7 @@
 //! Rust library for `burette`, a document library manager.
 
 #![warn(
+    clippy::pedantic,
     clippy::absolute_paths,
     clippy::allow_attributes_without_reason,
     clippy::dbg_macro,
@@ -11,6 +12,10 @@
     missing_debug_implementations,
     missing_docs
 )]
+// The following lints are enable by default in clippy::pedantic, but are disabled here because
+// they are too aggressive.
+#![allow(clippy::module_name_repetitions, reason = "Occasionally useful")]
+#![allow(clippy::too_many_lines, reason = "This is not bad in my opinion")]
 
 use {
     anyhow::{anyhow, bail, Context},
@@ -33,6 +38,7 @@ mod isbn;
 pub use isbn::Isbn13;
 
 /// Format a string into a format suitable for use as a file name.
+#[must_use]
 pub fn format_as_file_name(s: &str) -> String {
     let mut result = String::with_capacity(s.len());
     let mut prev_was_whitespace = true;
@@ -64,6 +70,10 @@ fn home_dir() -> anyhow::Result<PathBuf> {
 /// Return the location of the default library directory.
 ///
 /// The default library directory is `$HOME/.book-store`.
+///
+/// # Errors
+///
+/// Returns an error if the home directory cannot be determined.
 pub fn default_library_dir() -> anyhow::Result<PathBuf> {
     Ok(home_dir()
         .context("Failed to determine library directory")?
@@ -81,6 +91,7 @@ pub enum FileFormat {
 
 impl FileFormat {
     /// Get the file extension for this file format.
+    #[must_use]
     pub fn extension(&self) -> &'static str {
         match self {
             Self::Epub => "epub",
@@ -102,6 +113,7 @@ impl FileFormat {
     }
 
     /// Get the MIME type for this file format.
+    #[must_use]
     pub fn mime_type(&self) -> &'static str {
         match self {
             Self::Epub => "application/epub+zip",

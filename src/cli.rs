@@ -26,7 +26,7 @@ use {
 pub fn run() {
     let cli = Cli::parse();
     if let Err(error) = cli.run() {
-        eprintln!("Error: {:#}", error);
+        eprintln!("Error: {error:#}");
         process::exit(1);
     }
 }
@@ -37,7 +37,7 @@ where
     T::Err: Display,
 {
     loop {
-        print!("{}: ", prompt);
+        print!("{prompt}: ");
         io::stdout()
             .flush()
             .context("IO error while writing to stdout")?;
@@ -49,14 +49,14 @@ where
 
         match input.trim().parse() {
             Ok(value) => return Ok(value),
-            Err(error) => eprintln!("Invalid input: {}", error),
+            Err(error) => eprintln!("Invalid input: {error}"),
         }
     }
 }
 
 fn stdin_confirm(prompt: &str) -> anyhow::Result<bool> {
     loop {
-        print!("{} (y/n): ", prompt);
+        print!("{prompt} (y/n): ");
         io::stdout()
             .flush()
             .context("IO error while writing to stdout")?;
@@ -168,9 +168,9 @@ impl Cli {
                     print!("{}: {}", doc.hash().to_short_string(), doc.title());
                     let mut authors = doc.authors();
                     if let Some(author) = authors.next() {
-                        print!(" - {}", author);
+                        print!(" - {author}");
                         for author in authors {
-                            print!(", {}", author);
+                            print!(", {author}");
                         }
                     }
                     println!();
@@ -204,7 +204,7 @@ impl Cli {
                     }
                     println!("Documents not found:");
                     for hash_prefix in results.not_found() {
-                        println!("{}", hash_prefix);
+                        println!("{hash_prefix}");
                     }
                     printed = true;
                 }
