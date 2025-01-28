@@ -144,11 +144,18 @@ impl Cli {
                     isbns.push(isbn);
                 }
 
+                let mut doi = None;
+                let read_doi = stdin_confirm("Add a DOI?")?;
+                if read_doi {
+                    doi = Some(stdin_read_input("DOI")?);
+                }
+
                 let metadata = DocMetadata {
                     title,
                     authors,
                     isbns,
                     file_format,
+                    doi,
                 };
 
                 //--------------------------------------------------------------------------------//

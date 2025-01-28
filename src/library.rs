@@ -880,4 +880,6 @@ pub struct DocMetadata {
     pub isbns: Vec<Isbn13>,
     /// File format of the document.
     pub file_format: FileFormat,
+    /// DOI of the document.
+    pub doi: Option<String>,
 }
