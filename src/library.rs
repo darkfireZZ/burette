@@ -215,6 +215,17 @@ impl Library {
                     doc.hash.to_short_string()
                 );
             }
+            if let (Some(doi), Some(new_doi)) =
+                (doc.metadata.doi.as_deref(), metadata.doi.as_deref())
+            {
+                if doi == new_doi {
+                    bail!(
+                        "Document with DOI {} already exists ({})",
+                        doi,
+                        doc.hash.to_short_string()
+                    );
+                }
+            }
         }
 
         // Add the document to the library.
