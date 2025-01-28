@@ -6,6 +6,8 @@
 # If any test fails, the script will print an error message and return a non-zero
 # exit code.
 
+echo -e "\033[1mRunning system tests\033[0m" >&2
+
 FAILED=0
 
 # Path to the directory containing this script
@@ -14,7 +16,9 @@ TEST_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Find the root directory of the project
 GIT_DIR=$(git -C "$TEST_DIR" rev-parse --show-toplevel 2>/dev/null)
 
+echo "Building project:" >&2
 cargo build || exit 1
+
 # Overwrite the PATH to include the version of the binary we just built
 export PATH="$GIT_DIR/target/debug:$PATH"
 
@@ -35,7 +39,7 @@ cd $SYS_TESTS
 TESTS=$(find . -name 'TEST_*' -type d)
 
 for sys_test in $TESTS; do
-    echo -n "Running test $sys_test... " >&2
+    echo -n "Running $sys_test... " >&2
     burette new > ./$sys_test/stdout 2> ./$sys_test/stderr && {
         ./$sys_test/cmds.sh > ./$sys_test/stdout 2> ./$sys_test/stderr
     }
