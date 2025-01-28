@@ -250,6 +250,43 @@ impl Library {
         Ok(())
     }
 
+    /// Edit the metadata of a document in the library.
+    ///
+    /// The metadata of the document matching the given hash prefix is modified using the provided
+    /// closure.
+    ///
+    /// # Errors
+    ///
+    /// An error will be returned in any of the following cases:
+    /// - No document matches the hash prefix.
+    /// - Multiple documents match the hash prefix.
+    /// - The index file cannot be read or written.
+    /// - The closure returns an error.
+    pub fn edit_metadata<F>(&self, hash_prefix: &str, edit: F) -> anyhow::Result<()>
+    where
+        F: FnOnce(&mut IndexEntry) -> anyhow::Result<()>,
+    {
+        let index_path = self.index_path();
+        let mut index = LibraryIndex::open(&index_path)?;
+
+        match index.find_hash_mut(hash_prefix) {
+            FindHashMut::NotFound => {
+                bail!("No document found with hash prefix {}", hash_prefix);
+            }
+            FindHashMut::Found(entry) => {
+                edit(entry)?;
+            }
+            FindHashMut::Ambiguous => {
+                bail!(
+                    "Multiple documents found matching hash prefix {}",
+                    hash_prefix
+                );
+            }
+        }
+
+        index.save(&index_path)
+    }
+
     /// Retrieve a document from the library.
     ///
     /// The document matching the given hash prefix is copied to the specified output path.
@@ -722,14 +759,40 @@ impl IndexEntry {
         &self.metadata.title
     }
 
+    /// Set the title of the document.
+    pub fn set_title(&mut self, title: String) {
+        self.metadata.title = title;
+    }
+
     /// Return the authors of the document.
     pub fn authors(&self) -> impl Iterator<Item = &str> {
         self.metadata.authors.iter().map(String::as_str)
     }
 
+    /// Set the authors of the document.
+    pub fn set_authors(&mut self, authors: Vec<String>) {
+        self.metadata.authors = authors;
+    }
+
     /// Return the ISBNs of the document.
     pub fn isbns(&self) -> impl Iterator<Item = &Isbn13> {
         self.metadata.isbns.iter()
+    }
+
+    /// Set the ISBNs of the document.
+    pub fn set_isbns(&mut self, isbns: Vec<Isbn13>) {
+        self.metadata.isbns = isbns;
+    }
+
+    /// Return the DOI of the document.
+    #[must_use]
+    pub fn doi(&self) -> Option<&str> {
+        self.metadata.doi.as_deref()
+    }
+
+    /// Set the DOI of the document.
+    pub fn set_doi(&mut self, doi: Option<String>) {
+        self.metadata.doi = doi;
     }
 
     /// Return the file format of the document.
@@ -747,6 +810,27 @@ impl LibraryIndex {
     fn new() -> Self {
         Self {
             documents: Vec::new(),
+        }
+    }
+
+    /// Find a document in the index that matches the specified hash prefix.
+    ///
+    /// - If no document matches the hash prefix, [`FindHashMut::NotFound`] is returned.
+    /// - If exactly one document matches the hash prefix, [`FindHashMut::Found`] is returned with a mutable reference
+    ///   to the document.
+    /// - If multiple documents match the hash prefix, [`FindHashMut::Ambiguous`] is returned with a
+    ///   list of the matching documents.
+    fn find_hash_mut<'a>(&'a mut self, hash_prefix: &str) -> FindHashMut<'a> {
+        let mut matches = Vec::new();
+        for (i, entry) in self.documents.iter().enumerate() {
+            if entry.hash().to_string().starts_with(hash_prefix) {
+                matches.push(i);
+            }
+        }
+        match matches.len() {
+            0 => FindHashMut::NotFound,
+            1 => FindHashMut::Found(&mut self.documents[matches[0]]),
+            _ => FindHashMut::Ambiguous,
         }
     }
 
@@ -822,6 +906,17 @@ impl LibraryIndex {
             )
         })
     }
+}
+
+/// Results from [`LibraryIndex::find_hash_mut()`].
+#[derive(Debug)]
+enum FindHashMut<'a> {
+    /// No document matched the hash prefix.
+    NotFound,
+    /// Exactly one document matched the hash prefix.
+    Found(&'a mut IndexEntry),
+    /// Multiple documents matched the hash prefix.
+    Ambiguous,
 }
 
 /// Results from [`LibraryIndex::find_all_hashes()`].

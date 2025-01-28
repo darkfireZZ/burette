@@ -5,7 +5,7 @@ use {
     anyhow::{bail, Context},
     clap::{Parser, Subcommand},
     std::{
-        fmt::Display,
+        fmt::{self, Display, Formatter},
         fs,
         io::{self, Write},
         path::PathBuf,
@@ -161,6 +161,77 @@ impl Cli {
                 //--------------------------------------------------------------------------------//
 
                 library.add_document(path, metadata)?;
+
+                Ok(ExitCode::SUCCESS)
+            }
+            Command::Edit { hash_prefix, field } => {
+                let library_path = self.library_path()?;
+                let library = Library::open(library_path)?;
+
+                match field {
+                    EditField::Title => {
+                        library.edit_metadata(hash_prefix, |index_entry| {
+                            println!("Current title:\n{}", index_entry.title());
+                            let title = stdin_read_input("New title")?;
+                            index_entry.set_title(title);
+                            Ok(())
+                        })?;
+                    }
+                    EditField::Authors => {
+                        library.edit_metadata(hash_prefix, |index_entry| {
+                            println!("Current authors:");
+                            for author in index_entry.authors() {
+                                println!("{author}");
+                            }
+                            let mut authors = Vec::new();
+                            loop {
+                                let another_author = stdin_confirm("Add another author?")?;
+                                if !another_author {
+                                    break;
+                                }
+                                let author = stdin_read_input("Author")?;
+                                authors.push(author);
+                            }
+                            index_entry.set_authors(authors);
+                            Ok(())
+                        })?;
+                    }
+                    EditField::Isbns => {
+                        library.edit_metadata(hash_prefix, |index_entry| {
+                            println!("Current ISBNs:");
+                            for isbn in index_entry.isbns() {
+                                println!("{isbn}");
+                            }
+                            let mut isbns = Vec::new();
+                            loop {
+                                let another_isbn = stdin_confirm("Add another ISBN?")?;
+                                if !another_isbn {
+                                    break;
+                                }
+                                let isbn = stdin_read_input("ISBN")?;
+                                isbns.push(isbn);
+                            }
+                            index_entry.set_isbns(isbns);
+                            Ok(())
+                        })?;
+                    }
+                    EditField::Doi => {
+                        library.edit_metadata(hash_prefix, |index_entry| {
+                            match index_entry.doi() {
+                                Some(doi) => println!("Current DOI:\n{doi}"),
+                                None => println!("No DOI currently set."),
+                            }
+                            let read_doi = stdin_confirm("Add a DOI?")?;
+                            let doi = if read_doi {
+                                Some(stdin_read_input("DOI")?)
+                            } else {
+                                None
+                            };
+                            index_entry.set_doi(doi);
+                            Ok(())
+                        })?;
+                    }
+                }
 
                 Ok(ExitCode::SUCCESS)
             }
@@ -326,6 +397,13 @@ enum Command {
     },
     /// List all documents in the library
     List,
+    /// Edit the metadata of a document in the library
+    Edit {
+        /// Hash prefix of the document to edit
+        hash_prefix: String,
+        /// Field of the document to edit
+        field: EditField,
+    },
     /// Retrieve a document from the library
     Get {
         /// Hash prefix of the document to retrieve
@@ -354,4 +432,41 @@ enum Command {
     /// status code of 0. If the library is not valid, the command prints the errors found and
     /// exits with a non-zero status code.
     Validate,
+}
+
+/// Field of a document to edit.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum EditField {
+    /// Edit the title of the document
+    Title,
+    /// Edit the authors of the document
+    Authors,
+    /// Edit the ISBNs of the document
+    Isbns,
+    /// Edit the DOI of the document
+    Doi,
+}
+
+impl Display for EditField {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            EditField::Title => write!(f, "title"),
+            EditField::Authors => write!(f, "authors"),
+            EditField::Isbns => write!(f, "isbns"),
+            EditField::Doi => write!(f, "doi"),
+        }
+    }
+}
+
+impl FromStr for EditField {
+    type Err = anyhow::Error;
+    fn from_str(s: &str) -> anyhow::Result<Self> {
+        match s {
+            "title" => Ok(EditField::Title),
+            "authors" => Ok(EditField::Authors),
+            "isbns" => Ok(EditField::Isbns),
+            "doi" => Ok(EditField::Doi),
+            _ => bail!("Invalid field: {}", s),
+        }
+    }
 }
