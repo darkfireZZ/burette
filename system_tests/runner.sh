@@ -20,6 +20,8 @@ export PATH="$GIT_DIR/target/debug:$PATH"
 
 SYS_TESTS="$TEST_DIR/tests"
 
+export TEST_DOCS="$TEST_DIR/test_docs"
+
 cd $SYS_TESTS
 
 TESTS=$(find . -name 'TEST_*' -type d)
