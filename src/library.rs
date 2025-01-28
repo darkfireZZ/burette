@@ -30,10 +30,13 @@ const VERSION_FILE: &str = "burette_version";
 #[derive(Debug)]
 pub struct Library {
     path: PathBuf,
-    // For now, we don't use the version field. However, it may be useful in the future if we want
-    // to implement backwards compatibility or other features that depend on the version of the
-    // library.
-    #[allow(dead_code)]
+    #[allow(
+        dead_code,
+        reason = "
+        For now, we don't use the version field.
+        However, it may be useful in the future if we want to implement backwards compatibility or
+        other features that depend on the version of the library."
+    )]
     version: String,
 }
 

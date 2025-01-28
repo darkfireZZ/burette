@@ -2,6 +2,7 @@
 
 #![warn(
     clippy::absolute_paths,
+    clippy::allow_attributes_without_reason,
     clippy::dbg_macro,
     clippy::panic,
     clippy::todo,
