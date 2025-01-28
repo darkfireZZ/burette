@@ -1,0 +1,17 @@
+Command line interface for the application
+
+Usage: burette [OPTIONS] <COMMAND>
+
+Commands:
+  add       Add a new document to the library
+  list      List all documents in the library
+  edit      Edit the metadata of a document in the library
+  get       Retrieve a document from the library
+  new       Create a new library
+  remove    Remove documents from the library
+  validate  Validate the library
+  help      Print this message or the help of the given subcommand(s)
+
+Options:
+  -l, --library <LIBRARY>  Path to the document library
+  -h, --help               Print help
