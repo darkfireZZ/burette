@@ -5,7 +5,9 @@ use {
     std::{
         collections::HashSet,
         env,
-        fs::{self, File},
+        ffi::{OsStr, OsString},
+        fmt::{self, Display, Formatter},
+        fs::{self, File, FileType},
         iter,
         path::{Path, PathBuf},
     },
@@ -405,8 +407,215 @@ impl Library {
         })
     }
 
-    pub fn validate(&self) -> anyhow::Result<()> {
-        unimplemented!()
+    /// Check if the library is in a consistent state.
+    ///
+    /// This function performs the following checks:
+    /// - The document store contains only files and no directories or other types of files.
+    /// - The names of all files in the document store match their SHA-256 hash.
+    /// - All entries in the index file have a corresponding file in the document store.
+    /// - All files in the document store have an entry in the index file.
+    ///
+    /// # Errors
+    ///
+    /// If there is an IO error when validating the library, an error is returned.
+    //
+    // Note that we don't need to check
+    // - existence of the document store directory
+    // - validity of the index file
+    // - validity of the version file
+    // as these are checked when opening the library.
+    pub fn validate(&self) -> anyhow::Result<ValidationResults> {
+        let document_store_dir = self.document_store_dir();
+
+        let mut hash_mismatches = Vec::new();
+        let mut invalid_file_types = Vec::new();
+        let mut existing_files = HashSet::new();
+
+        let dir = fs::read_dir(&document_store_dir).with_context(|| {
+            format!(
+                "Failed to read document store directory at {}",
+                document_store_dir.display()
+            )
+        })?;
+        for entry in dir {
+            let entry = entry.context("Failed to read directory entry of document store")?;
+
+            let file_type = entry.file_type().with_context(|| {
+                format!(
+                    "Failed to determine file type of {}",
+                    entry.path().display()
+                )
+            })?;
+            let file_name = entry.file_name();
+            if !file_type.is_file() {
+                invalid_file_types.push(NotAFile {
+                    file_name,
+                    file_type,
+                });
+                continue;
+            }
+
+            let path = entry.path();
+            let file = File::open(&path)
+                .with_context(|| format!("Failed to open file {}", path.display()))?;
+            let hash = sha256::hash_reader(file)
+                .with_context(|| format!("Failed to hash file {}", path.display()))?;
+            let hash_str = hash.to_string();
+            if *file_name != *hash_str {
+                hash_mismatches.push(HashMismatch {
+                    expected: hash,
+                    actual: file_name,
+                });
+            }
+            existing_files.insert(hash);
+        }
+
+        let index_path = self.index_path();
+        let index = LibraryIndex::open(&index_path)?;
+
+        let existing_entries = index
+            .documents
+            .iter()
+            .map(|entry| *entry.hash())
+            .collect::<HashSet<_>>();
+
+        let missing_files = existing_entries
+            .difference(&existing_files)
+            .copied()
+            .collect();
+        let missing_index_entries = existing_files
+            .difference(&existing_entries)
+            .copied()
+            .collect();
+
+        Ok(ValidationResults {
+            missing_files,
+            missing_index_entries,
+            hash_mismatches,
+            invalid_file_types,
+        })
+    }
+}
+
+/// Results from [`Library::validate()`].
+///
+/// See [`Library::validate()`] for details.
+#[derive(Debug)]
+pub struct ValidationResults {
+    missing_files: HashSet<sha256::Hash>,
+    missing_index_entries: HashSet<sha256::Hash>,
+    hash_mismatches: Vec<HashMismatch>,
+    invalid_file_types: Vec<NotAFile>,
+}
+
+impl ValidationResults {
+    /// Return true if the library is in a consistent state.
+    ///
+    /// If this returns true, then
+    /// - [`Self::missing_files()`] is empty,
+    /// - [`Self::missing_index_entries()`] is empty,
+    /// - [`Self::hash_mismatches()`] is empty, and
+    /// - [`Self::invalid_file_types()`] is empty.
+    ///
+    /// If this returns false, then at least one of the above conditions is not met.
+    #[must_use]
+    pub fn is_valid(&self) -> bool {
+        self.missing_files.is_empty()
+            && self.missing_index_entries.is_empty()
+            && self.hash_mismatches.is_empty()
+            && self.invalid_file_types.is_empty()
+    }
+
+    /// Return the SHA-256 hashes of files that are in the document store but not in the index.
+    pub fn missing_files(&self) -> impl Iterator<Item = &sha256::Hash> {
+        self.missing_files.iter()
+    }
+
+    /// Return the SHA-256 hashes of files that are in the index but not in the document store.
+    pub fn missing_index_entries(&self) -> impl Iterator<Item = &sha256::Hash> {
+        self.missing_index_entries.iter()
+    }
+
+    /// Return information about files with names that do not match their SHA-256 hash.
+    pub fn hash_mismatches(&self) -> impl Iterator<Item = &HashMismatch> {
+        self.hash_mismatches.iter()
+    }
+
+    /// Return information about files with invalid file types.
+    pub fn invalid_file_types(&self) -> impl Iterator<Item = &NotAFile> {
+        self.invalid_file_types.iter()
+    }
+}
+
+/// Indicates that the name of a file does not match its SHA-256 hash.
+#[derive(Debug)]
+pub struct HashMismatch {
+    expected: sha256::Hash,
+    actual: OsString,
+}
+
+impl HashMismatch {
+    /// The SHA-256 hash of the file. This is the expected name of the file.
+    #[must_use]
+    pub fn expected(&self) -> &sha256::Hash {
+        &self.expected
+    }
+
+    /// The actual name of the file.
+    #[must_use]
+    pub fn actual(&self) -> &OsStr {
+        &self.actual
+    }
+}
+
+impl Display for HashMismatch {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(
+            f,
+            "{} has name {}",
+            self.expected.to_short_string(),
+            self.actual.to_string_lossy(),
+        )
+    }
+}
+
+/// Indicates that a file has an invalid file type.
+#[derive(Debug)]
+pub struct NotAFile {
+    file_name: OsString,
+    file_type: FileType,
+}
+
+impl NotAFile {
+    /// The name of the file.
+    #[must_use]
+    pub fn file_name(&self) -> &OsStr {
+        &self.file_name
+    }
+
+    /// The type of the file.
+    #[must_use]
+    pub fn file_type(&self) -> FileType {
+        self.file_type
+    }
+}
+
+impl Display for NotAFile {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        let file_type = if self.file_type.is_dir() {
+            "directory"
+        } else if self.file_type.is_symlink() {
+            "symlink"
+        } else if self.file_type.is_file() {
+            unreachable!("NotAFile should only be used for non-file types");
+        } else {
+            "unknown"
+        };
+        write!(
+            f,
+            "{} is not a regular file (type: {file_type})",
+            self.file_name.to_string_lossy(),
+        )
     }
 }
 
@@ -422,6 +631,12 @@ pub struct RemovalResults<'a> {
 }
 
 impl<'a> RemovalResults<'a> {
+    /// Return true if all documents were successfully removed.
+    #[must_use]
+    pub fn success(&self) -> bool {
+        self.ambiguous.is_empty() && self.errors.is_empty() && self.not_found.is_empty()
+    }
+
     /// Entries that could not be removed because multiple documents matched the hash prefix.
     #[must_use]
     pub fn ambiguous(&self) -> &[AmbiguousHashMatchOwned<'a>] {

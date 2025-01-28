@@ -9,7 +9,7 @@ use {
         fs,
         io::{self, Write},
         path::PathBuf,
-        process,
+        process::ExitCode,
         str::FromStr,
     },
 };
@@ -23,11 +23,15 @@ use {
 ///
 /// If an error occurs, an error message is printed to standard error and the process exits with a
 /// non-zero exit code.
-pub fn run() {
+#[must_use]
+pub fn run() -> ExitCode {
     let cli = Cli::parse();
-    if let Err(error) = cli.run() {
-        eprintln!("Error: {error:#}");
-        process::exit(1);
+    match cli.run() {
+        Ok(exit_code) => exit_code,
+        Err(error) => {
+            eprintln!("Error: {error:#}");
+            ExitCode::FAILURE
+        }
     }
 }
 
@@ -94,7 +98,7 @@ impl Cli {
     }
 
     /// Run the command.
-    fn run(&self) -> anyhow::Result<()> {
+    fn run(&self) -> anyhow::Result<ExitCode> {
         match &self.command {
             Command::Add { path } => {
                 // Validate the path
@@ -149,7 +153,9 @@ impl Cli {
 
                 //--------------------------------------------------------------------------------//
 
-                library.add_document(path, metadata)
+                library.add_document(path, metadata)?;
+
+                Ok(ExitCode::SUCCESS)
             }
             Command::Get {
                 hash_prefix,
@@ -158,7 +164,7 @@ impl Cli {
                 let library_path = self.library_path()?;
                 let library = Library::open(library_path)?;
                 library.retrieve_document(hash_prefix, output.as_ref())?;
-                Ok(())
+                Ok(ExitCode::SUCCESS)
             }
             Command::List => {
                 // TODO: This should be replaced with a more robust implementation
@@ -175,12 +181,12 @@ impl Cli {
                     }
                     println!();
                 }
-                Ok(())
+                Ok(ExitCode::SUCCESS)
             }
             Command::New => {
                 let library_path = self.library_path()?;
                 Library::new(library_path)?;
-                Ok(())
+                Ok(ExitCode::SUCCESS)
             }
             Command::Remove { hash_prefixes } => {
                 let library_path = self.library_path()?;
@@ -234,7 +240,71 @@ impl Cli {
                     }
                 }
 
-                Ok(())
+                Ok(if results.success() {
+                    ExitCode::SUCCESS
+                } else {
+                    ExitCode::FAILURE
+                })
+            }
+            Command::Validate => {
+                let library_path = self.library_path()?;
+                let library = Library::open(library_path)?;
+                let results = library.validate()?;
+                if results.is_valid() {
+                    println!("Library is valid.");
+                    Ok(ExitCode::SUCCESS)
+                } else {
+                    let mut printed = false;
+
+                    let mut missing_files = results.missing_files();
+                    if let Some(missing_file) = missing_files.next() {
+                        eprintln!("Files present in the document store but not in the index:");
+                        eprintln!("{missing_file}");
+                        for missing_file in missing_files {
+                            eprintln!("{missing_file}");
+                        }
+                        printed = true;
+                    }
+
+                    let mut missing_index_entries = results.missing_index_entries();
+                    if let Some(missing_index_entry) = missing_index_entries.next() {
+                        if printed {
+                            eprintln!();
+                        }
+                        eprintln!("Files present in the index but not in the document store:");
+                        eprintln!("{missing_index_entry}");
+                        for missing_index_entry in missing_index_entries {
+                            eprintln!("{missing_index_entry}");
+                        }
+                        printed = true;
+                    }
+
+                    let mut hash_mismatches = results.hash_mismatches();
+                    if let Some(hash_mismatch) = hash_mismatches.next() {
+                        if printed {
+                            eprintln!();
+                        }
+                        eprintln!("Files with names that do not match their hashes:");
+                        eprintln!("{hash_mismatch}");
+                        for hash_mismatch in hash_mismatches {
+                            eprintln!("{hash_mismatch}");
+                        }
+                        printed = true;
+                    }
+
+                    let mut invalid_file_types = results.invalid_file_types();
+                    if let Some(invalid_file_type) = invalid_file_types.next() {
+                        if printed {
+                            eprintln!();
+                        }
+                        eprintln!("Files with invalid file types:");
+                        eprintln!("{invalid_file_type}");
+                        for invalid_file_type in invalid_file_types {
+                            eprintln!("{invalid_file_type}");
+                        }
+                    }
+                    Ok(ExitCode::FAILURE)
+                }
             }
         }
     }
@@ -270,4 +340,11 @@ enum Command {
         #[arg(required = true, num_args = 1..)]
         hash_prefixes: Vec<String>,
     },
+    /// Validate the library
+    ///
+    /// This command checks the integrity of the library and prints any errors found.
+    /// If the library is in a valid state, the command prints "Library is valid." and exits with a
+    /// status code of 0. If the library is not valid, the command prints the errors found and
+    /// exits with a non-zero status code.
+    Validate,
 }

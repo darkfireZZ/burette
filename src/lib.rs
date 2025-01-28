@@ -5,6 +5,7 @@
     clippy::absolute_paths,
     clippy::allow_attributes_without_reason,
     clippy::dbg_macro,
+    clippy::exit,
     clippy::panic,
     clippy::todo,
     clippy::unimplemented,
