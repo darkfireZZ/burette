@@ -1,5 +1,15 @@
 #!/bin/sh
 
+sha256() {
+    sha256sum $1 | cut -d ' ' -f 1
+}
+
+export HASH_DARWIN=$(sha256 $TEST_DOCS/darwin.epub)
+export HASH_FAUST=$(sha256 $TEST_DOCS/faust_teil_1.epub)
+export HASH_MOBY=$(sha256 $TEST_DOCS/moby_dick_1.epub)
+
+echo $HASH_DARWIN
+
 add_darwin() {
     burette add $TEST_DOCS/darwin.epub << EOF
 On the Origin of Species By Means of Natural Selection

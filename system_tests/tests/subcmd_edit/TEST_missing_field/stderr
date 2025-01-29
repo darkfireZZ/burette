@@ -1,0 +1,6 @@
+error: the following required arguments were not provided:
+  <FIELD>
+
+Usage: burette edit <HASH_PREFIX> <FIELD>
+
+For more information, try '--help'.

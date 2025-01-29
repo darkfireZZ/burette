@@ -35,4 +35,5 @@ If the output differs from the previous run, the runner will print the diff and 
   `$TEST_DOCS`.
 - The helper functions `add_darwin`, `add_faust`, `add_moby_dick` are made available.
   These are shorthands for adding the corresponding test documents to the library.
-
+- The environment variables `$HASH_DARWIN`, `$HASH_FAUST`, `$HASH_MOBY_DICK` contain the SHA-256
+  hash of the respective test document.

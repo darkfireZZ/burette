@@ -15,20 +15,8 @@ TEST_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 cd $TEST_DIR
 
-# Load the helper functions
-# - `add_darwin`
-# - `add_faust`
-# - `add_moby_dick`
-. helpers.sh
-
-# Find the root directory of the project
-GIT_DIR=$(git -C "$TEST_DIR" rev-parse --show-toplevel 2>/dev/null)
-
 echo "Building project:" >&2
 cargo build || exit 1
-
-# Overwrite the PATH to include the version of the binary we just built
-export PATH="$GIT_DIR/target/debug:$PATH"
 
 # We want to isolate the tests from the user's home directory
 #
@@ -38,9 +26,21 @@ export PATH="$GIT_DIR/target/debug:$PATH"
 TMP_DIR=$(mktemp -d)
 export HOME="$TMP_DIR"
 
-SYS_TESTS="$TEST_DIR/tests"
-
 export TEST_DOCS="$TEST_DIR/test_docs"
+
+# Load the helper functions
+# - `add_darwin`
+# - `add_faust`
+# - `add_moby_dick`
+. helpers.sh
+
+# Find the root directory of the project
+GIT_DIR=$(git -C "$TEST_DIR" rev-parse --show-toplevel 2>/dev/null)
+
+# Overwrite the PATH to include the version of the binary we just built
+export PATH="$GIT_DIR/target/debug:$PATH"
+
+SYS_TESTS="$TEST_DIR/tests"
 
 cd $SYS_TESTS
 

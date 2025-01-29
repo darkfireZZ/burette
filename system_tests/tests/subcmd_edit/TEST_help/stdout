@@ -1,0 +1,30 @@
+Edit the metadata of a document in the library
+
+Usage: burette edit <HASH_PREFIX> <FIELD>
+
+Arguments:
+  <HASH_PREFIX>  Hash prefix of the document to edit
+  <FIELD>        Field of the document to edit
+
+Options:
+  -h, --help  Print help
+Edit the metadata of a document in the library
+
+Usage: burette edit <HASH_PREFIX> <FIELD>
+
+Arguments:
+  <HASH_PREFIX>  Hash prefix of the document to edit
+  <FIELD>        Field of the document to edit
+
+Options:
+  -h, --help  Print help
+Edit the metadata of a document in the library
+
+Usage: burette edit <HASH_PREFIX> <FIELD>
+
+Arguments:
+  <HASH_PREFIX>  Hash prefix of the document to edit
+  <FIELD>        Field of the document to edit
+
+Options:
+  -h, --help  Print help
