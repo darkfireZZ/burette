@@ -1,0 +1,7 @@
+error: unrecognized subcommand 'ls'
+
+  tip: a similar subcommand exists: 'list'
+
+Usage: burette [OPTIONS] <COMMAND>
+
+For more information, try '--help'.
