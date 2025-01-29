@@ -41,7 +41,7 @@ TESTS=$(find . -name 'TEST_*' -type d)
 for sys_test in $TESTS; do
     echo -n "Running $sys_test... " >&2
     burette new > ./$sys_test/stdout 2> ./$sys_test/stderr && {
-        ./$sys_test/cmds.sh > ./$sys_test/stdout 2> ./$sys_test/stderr
+        ./$sys_test/cmds.sh < /dev/null > ./$sys_test/stdout 2> ./$sys_test/stderr
     }
     if [ $? -eq 0 ]; then
         echo -e " \033[0;32mpassed\033[0m" >&2
