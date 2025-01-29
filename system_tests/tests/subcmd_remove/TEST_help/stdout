@@ -1,0 +1,35 @@
+Remove documents from the library
+
+Usage: burette remove <HASH_PREFIXES>...
+
+Arguments:
+  <HASH_PREFIXES>...  Hash prefixes of the documents to remove
+
+Options:
+  -h, --help  Print help (see more with '--help')
+Remove documents from the library
+
+Usage: burette remove <HASH_PREFIXES>...
+
+Arguments:
+  <HASH_PREFIXES>...
+          Hash prefixes of the documents to remove
+          
+          All documents with a hash that starts with one of the given prefixes will be removed. If a document matches multiple prefixes, it will not be removed and instead a message will be printed to standard error.
+
+Options:
+  -h, --help
+          Print help (see a summary with '-h')
+Remove documents from the library
+
+Usage: burette remove <HASH_PREFIXES>...
+
+Arguments:
+  <HASH_PREFIXES>...
+          Hash prefixes of the documents to remove
+          
+          All documents with a hash that starts with one of the given prefixes will be removed. If a document matches multiple prefixes, it will not be removed and instead a message will be printed to standard error.
+
+Options:
+  -h, --help
+          Print help (see a summary with '-h')

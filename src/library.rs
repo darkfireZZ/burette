@@ -827,6 +827,7 @@ impl LibraryIndex {
         }
     }
 
+    // TODO: This should not allow the empty string
     /// Find a document in the index that matches the specified hash prefix.
     ///
     /// - If no document matches the hash prefix, [`FindHashMut::NotFound`] is returned.
@@ -848,6 +849,8 @@ impl LibraryIndex {
         }
     }
 
+    // TODO: This should not allow the empty string
+    // TODO: It should be clarified what happens if hashes are prefixes of each other
     /// Find all documents in the index that match the specified hash prefixes.
     fn find_all_hashes<'hash, 'entry, H>(
         &'entry self,

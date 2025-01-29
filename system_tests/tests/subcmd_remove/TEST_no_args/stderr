@@ -1,0 +1,6 @@
+error: the following required arguments were not provided:
+  <HASH_PREFIXES>...
+
+Usage: burette remove <HASH_PREFIXES>...
+
+For more information, try '--help'.
