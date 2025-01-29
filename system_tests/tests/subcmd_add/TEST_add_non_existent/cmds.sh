@@ -1,7 +1,2 @@
 #!/bin/sh
-burette add non_existent.pdf
-if [ $? -eq 0 ]; then
-    exit 1
-else
-    exit 0
-fi
+! burette add non_existent.pdf
