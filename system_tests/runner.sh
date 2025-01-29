@@ -39,7 +39,7 @@ cd $SYS_TESTS
 TESTS=$(find . -name 'TEST_*' -type d)
 
 for sys_test in $TESTS; do
-    echo -n "Running $sys_test... " >&2
+    echo -n "Running ${sys_test#./}... " >&2
     burette new > ./$sys_test/stdout 2> ./$sys_test/stderr && {
         ./$sys_test/cmds.sh < /dev/null > ./$sys_test/stdout 2> ./$sys_test/stderr
     }
