@@ -47,9 +47,12 @@ where
             .context("IO error while writing to stdout")?;
 
         let mut input = String::new();
-        io::stdin()
+        let bytes_read = io::stdin()
             .read_line(&mut input)
             .context("IO error while reading from stdin")?;
+        if bytes_read == 0 {
+            bail!("Unexpected end of input");
+        }
 
         match input.trim().parse() {
             Ok(value) => return Ok(value),
@@ -66,9 +69,13 @@ fn stdin_confirm(prompt: &str) -> anyhow::Result<bool> {
             .context("IO error while writing to stdout")?;
 
         let mut input = String::new();
-        io::stdin()
+        let bytes_read = io::stdin()
             .read_line(&mut input)
             .context("IO error while reading from stdin")?;
+        if bytes_read == 0 {
+            bail!("Unexpected end of input");
+        }
+
         match input.trim().to_lowercase().as_str() {
             "y" | "yes" => return Ok(true),
             "n" | "no" => return Ok(false),
