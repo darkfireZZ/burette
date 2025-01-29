@@ -1,0 +1,30 @@
+Retrieve a document from the library
+
+Usage: burette get [OPTIONS] <HASH_PREFIX>
+
+Arguments:
+  <HASH_PREFIX>  Hash prefix of the document to retrieve
+
+Options:
+  -o, --output <OUTPUT>  Path to save the document to
+  -h, --help             Print help
+Retrieve a document from the library
+
+Usage: burette get [OPTIONS] <HASH_PREFIX>
+
+Arguments:
+  <HASH_PREFIX>  Hash prefix of the document to retrieve
+
+Options:
+  -o, --output <OUTPUT>  Path to save the document to
+  -h, --help             Print help
+Retrieve a document from the library
+
+Usage: burette get [OPTIONS] <HASH_PREFIX>
+
+Arguments:
+  <HASH_PREFIX>  Hash prefix of the document to retrieve
+
+Options:
+  -o, --output <OUTPUT>  Path to save the document to
+  -h, --help             Print help

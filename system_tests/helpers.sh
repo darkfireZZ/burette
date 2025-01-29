@@ -7,6 +7,7 @@ sha256() {
 export HASH_DARWIN=$(sha256 $TEST_DOCS/darwin.epub)
 export HASH_FAUST=$(sha256 $TEST_DOCS/faust_teil_1.epub)
 export HASH_MOBY_DICK=$(sha256 $TEST_DOCS/moby_dick_1.epub)
+export HASH_VAR_CHROM=$(sha256 $TEST_DOCS/var_chrom.pdf)
 
 add_darwin() {
     burette add $TEST_DOCS/darwin.epub << EOF
@@ -49,3 +50,14 @@ EOF
 }
 export -f add_moby_dick
 
+add_var_chrom() {
+    burette add $TEST_DOCS/var_chrom.pdf << EOF
+Variations Chromatiques de concert
+YES
+Georges Bizet
+NO
+NO
+NO
+EOF
+}
+export -f add_var_chrom

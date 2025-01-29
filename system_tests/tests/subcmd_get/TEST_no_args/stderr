@@ -1,0 +1,6 @@
+error: the following required arguments were not provided:
+  <HASH_PREFIX>
+
+Usage: burette get <HASH_PREFIX>
+
+For more information, try '--help'.

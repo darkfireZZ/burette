@@ -33,7 +33,8 @@ If the output differs from the previous run, the runner will print the diff and 
   creating and specifying the path to a library.
 - The test documents from [test_docs](test_docs) are available in the directory stored in
   `$TEST_DOCS`.
-- The helper functions `add_darwin`, `add_faust`, `add_moby_dick` are made available.
+- The helper functions `add_darwin`, `add_faust`, `add_moby_dick` and `add_var_chrom` are made
+  available.
   These are shorthands for adding the corresponding test documents to the library.
-- The environment variables `$HASH_DARWIN`, `$HASH_FAUST`, `$HASH_MOBY_DICK` contain the SHA-256
-  hash of the respective test document.
+- The environment variables `$HASH_DARWIN`, `$HASH_FAUST`, `$HASH_MOBY_DICK` and `$HASH_VAR_CHROM`
+  contain the SHA-256 hash of the respective test document.

@@ -46,11 +46,13 @@ cd $SYS_TESTS
 
 TESTS=$(find . -name 'TEST_*' -type d)
 
-for sys_test in $TESTS; do
-    echo -n "Running ${sys_test#./}... " >&2
-    burette new > ./$sys_test/stdout 2> ./$sys_test/stderr && {
-        ./$sys_test/cmds.sh < /dev/null > ./$sys_test/stdout 2> ./$sys_test/stderr
-    } && git diff --quiet $sys_test
+for sys_test_rel in $TESTS; do
+    sys_test="$SYS_TESTS/$sys_test_rel"
+    mkdir -p $TMP_DIR
+    echo -n "Running ${sys_test_rel#./}... " >&2
+    (cd $HOME && burette new && $sys_test/cmds.sh) \
+        < /dev/null > $sys_test_rel/stdout 2> $sys_test_rel/stderr \
+        && git diff --quiet $sys_test_rel
     if [ $? -eq 0 ]; then
         echo -e " \033[0;32mpassed\033[0m" >&2
     else
