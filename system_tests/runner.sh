@@ -50,7 +50,7 @@ for sys_test in $TESTS; do
     echo -n "Running ${sys_test#./}... " >&2
     burette new > ./$sys_test/stdout 2> ./$sys_test/stderr && {
         ./$sys_test/cmds.sh < /dev/null > ./$sys_test/stdout 2> ./$sys_test/stderr
-    }
+    } && git diff --quiet $sys_test
     if [ $? -eq 0 ]; then
         echo -e " \033[0;32mpassed\033[0m" >&2
     else
@@ -60,16 +60,10 @@ for sys_test in $TESTS; do
     rm -r $TMP_DIR || exit 1
 done
 
-git diff --exit-code $SYS_TESTS
-if [ $? -ne 0 ]; then
-    echo "Unexpected test output" >&2
-    FAILED=1
-fi
-
 if [ $FAILED -eq 0 ]; then
     echo -e "\033[0;32mAll tests passed\033[0m" >&2
-    exit 0
 else
     echo -e "\033[0;31mSome tests failed\033[0m" >&2
-    exit 1
 fi
+
+exit $FAILED
