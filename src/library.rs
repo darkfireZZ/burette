@@ -145,12 +145,15 @@ impl Library {
         }
 
         let version_path = path.join(VERSION_FILE);
-        let library_version = fs::read_to_string(&version_path).with_context(|| {
+        let mut library_version = fs::read_to_string(&version_path).with_context(|| {
             format!(
                 "Failed to read version file from {}",
                 version_path.display()
             )
         })?;
+        while library_version.ends_with(char::is_whitespace) {
+            library_version.pop();
+        }
         let software_version = env!("CARGO_PKG_VERSION");
         if library_version != software_version {
             bail!(
