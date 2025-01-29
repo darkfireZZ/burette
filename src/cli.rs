@@ -252,7 +252,6 @@ impl Cli {
                 Ok(ExitCode::SUCCESS)
             }
             Command::List => {
-                // TODO: This should be replaced with a more robust implementation
                 let library_path = self.library_path()?;
                 let library = Library::open(library_path)?;
                 for doc in library.documents()? {

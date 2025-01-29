@@ -13,6 +13,14 @@ FAILED=0
 # Path to the directory containing this script
 TEST_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+cd $TEST_DIR
+
+# Load the helper functions
+# - `add_darwin`
+# - `add_faust`
+# - `add_moby_dick`
+. helpers.sh
+
 # Find the root directory of the project
 GIT_DIR=$(git -C "$TEST_DIR" rev-parse --show-toplevel 2>/dev/null)
 
