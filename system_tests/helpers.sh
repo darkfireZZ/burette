@@ -6,9 +6,7 @@ sha256() {
 
 export HASH_DARWIN=$(sha256 $TEST_DOCS/darwin.epub)
 export HASH_FAUST=$(sha256 $TEST_DOCS/faust_teil_1.epub)
-export HASH_MOBY=$(sha256 $TEST_DOCS/moby_dick_1.epub)
-
-echo $HASH_DARWIN
+export HASH_MOBY_DICK=$(sha256 $TEST_DOCS/moby_dick_1.epub)
 
 add_darwin() {
     burette add $TEST_DOCS/darwin.epub << EOF
