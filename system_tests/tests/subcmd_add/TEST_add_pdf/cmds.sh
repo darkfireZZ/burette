@@ -11,4 +11,5 @@ n
 n
 EOF
 
+echo
 burette list
