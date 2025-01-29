@@ -13,9 +13,12 @@ n
 EOF
 }
 
+burette list
+
 cmd
 echo
+burette list
+
 ! cmd
 echo
-
 burette list
