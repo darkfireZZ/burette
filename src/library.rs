@@ -285,14 +285,14 @@ impl Library {
 
         match index.find_hash_mut(hash_prefix) {
             FindHashMut::NotFound => {
-                bail!("No document found with hash prefix {}", hash_prefix);
+                bail!("No document found with hash prefix '{}'", hash_prefix);
             }
             FindHashMut::Found(entry) => {
                 edit(entry)?;
             }
             FindHashMut::Ambiguous => {
                 bail!(
-                    "Multiple documents found matching hash prefix {}",
+                    "Multiple documents found matching hash prefix '{}'",
                     hash_prefix
                 );
             }
@@ -360,12 +360,12 @@ impl Library {
             }
             (None, Some(ambiguous), None) => {
                 bail!(
-                    "Multiple documents match hash prefix {}",
+                    "Multiple documents match hash prefix '{}'",
                     ambiguous.hash_prefix,
                 );
             }
             (None, None, Some(hash_prefix)) => {
-                bail!("No documents match hash prefix {}", hash_prefix);
+                bail!("No documents match hash prefix '{}'", hash_prefix);
             }
             _ => unreachable!(),
         }
