@@ -16,7 +16,7 @@ EOF
 echo
 burette list
 
-! burette add $TEST_DOCS/moby_dick_2.epub << EOF
+! burette add $TEST_DOCS/darwin.epub << EOF
 On the Origin of Species By Means of Natural Selection
 Yes
 Charles Darwin
