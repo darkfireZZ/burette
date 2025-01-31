@@ -1,0 +1,13 @@
+#!/bin/sh
+
+set -e
+
+add_darwin && echo
+add_faust && echo
+echo
+burette list
+
+mv $HOME/.book-store/documents/$HASH_DARWIN $HOME/.book-store/documents/evolution_book
+
+echo
+! burette validate

@@ -1,6 +1,12 @@
 
  - Add README
  - Finish all TODOs
- - Test 'validate' subcommand
  - Test for library directory structure
  - Make git repo public
+ - Fix subcmd_remove/TEST_multiple_partially_ambiguous_subprefixes
+ - Fix subcmd_validate/TEST_empty_library
+ - Fix subcmd_validate/TEST_missing_document (stderr is wrong)
+ - Fix subcmd_validate/TEST_missing_index_entry (stderr is wrong)
+ - Fix subcmd_validate/TEST_missing_version_file
+ - Fix subcmd_validate/TEST_missing_index
+ - Fix subcmd_validate/TEST_missing_documents_directory

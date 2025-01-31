@@ -1,0 +1,5 @@
+error: unexpected argument 'some' found
+
+Usage: burette validate
+
+For more information, try '--help'.

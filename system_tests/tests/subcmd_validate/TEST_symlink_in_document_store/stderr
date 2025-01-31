@@ -1,0 +1,2 @@
+Files with invalid file types:
+unexpected_symlink is not a regular file (type: symlink)

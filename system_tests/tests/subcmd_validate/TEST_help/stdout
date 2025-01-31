@@ -1,0 +1,24 @@
+Validate the library
+
+Usage: burette validate
+
+Options:
+  -h, --help  Print help (see more with '--help')
+Validate the library
+
+This command checks the integrity of the library and prints any errors found. If the library is in a valid state, the command prints "Library is valid." and exits with a status code of 0. If the library is not valid, the command prints the errors found and exits with a non-zero status code.
+
+Usage: burette validate
+
+Options:
+  -h, --help
+          Print help (see a summary with '-h')
+Validate the library
+
+This command checks the integrity of the library and prints any errors found. If the library is in a valid state, the command prints "Library is valid." and exits with a status code of 0. If the library is not valid, the command prints the errors found and exits with a non-zero status code.
+
+Usage: burette validate
+
+Options:
+  -h, --help
+          Print help (see a summary with '-h')
