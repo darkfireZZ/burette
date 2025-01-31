@@ -1,1 +1,1 @@
-Error: Multiple documents match hash prefix ''
+Error: Hash prefix cannot be an empty string

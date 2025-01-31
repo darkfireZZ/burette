@@ -283,7 +283,7 @@ impl Library {
         let index_path = self.index_path();
         let mut index = LibraryIndex::open(&index_path)?;
 
-        match index.find_hash_mut(hash_prefix) {
+        match index.find_hash_mut(hash_prefix)? {
             FindHashMut::NotFound => {
                 bail!("No document found with hash prefix '{}'", hash_prefix);
             }
@@ -323,7 +323,7 @@ impl Library {
         let index_path = self.index_path();
         let index = LibraryIndex::open(&index_path)?;
 
-        let mut matches = index.find_all_hashes(iter::once(hash_prefix));
+        let mut matches = index.find_all_hashes(iter::once(hash_prefix))?;
 
         let found = matches.found.pop();
         let ambiguous = matches.ambiguous.pop();
@@ -405,7 +405,7 @@ impl Library {
         let index_path = self.index_path();
         let index = LibraryIndex::open(&index_path)?;
 
-        let matches = index.find_all_hashes(hash_prefixes);
+        let matches = index.find_all_hashes(hash_prefixes)?;
 
         let not_found = matches.not_found;
         let ambiguous = matches
@@ -837,7 +837,6 @@ impl LibraryIndex {
         }
     }
 
-    // TODO: This should not allow the empty string
     /// Find a document in the index that matches the specified hash prefix.
     ///
     /// - If no document matches the hash prefix, [`FindHashMut::NotFound`] is returned.
@@ -845,32 +844,53 @@ impl LibraryIndex {
     ///   to the document.
     /// - If multiple documents match the hash prefix, [`FindHashMut::Ambiguous`] is returned with a
     ///   list of the matching documents.
-    fn find_hash_mut<'a>(&'a mut self, hash_prefix: &str) -> FindHashMut<'a> {
+    ///
+    /// # Errors
+    ///
+    /// If `hash_prefix` is the empty string, an error is returned.
+    fn find_hash_mut<'a>(&'a mut self, hash_prefix: &str) -> anyhow::Result<FindHashMut<'a>> {
+        if hash_prefix.is_empty() {
+            bail!("Hash prefix cannot be an empty string");
+        }
+
         let mut matches = Vec::new();
         for (i, entry) in self.documents.iter().enumerate() {
             if entry.hash().to_string().starts_with(hash_prefix) {
                 matches.push(i);
             }
         }
-        match matches.len() {
+        Ok(match matches.len() {
             0 => FindHashMut::NotFound,
             1 => FindHashMut::Found(&mut self.documents[matches[0]]),
             _ => FindHashMut::Ambiguous,
-        }
+        })
     }
 
-    // TODO: This should not allow the empty string
     // TODO: It should be clarified what happens if hashes are prefixes of each other
     /// Find all documents in the index that match the specified hash prefixes.
+    ///
+    /// # Errors
+    ///
+    /// If any of the hash prefixes are the empty string, an error is returned.
     fn find_all_hashes<'hash, 'entry, H>(
         &'entry self,
         hash_prefixes: H,
-    ) -> HashMatches<'hash, 'entry>
+    ) -> anyhow::Result<HashMatches<'hash, 'entry>>
     where
         H: Iterator<Item = &'hash str>,
     {
         // Collect the hashes into a HashSet to remove duplicates.
-        let hash_prefixes: Vec<_> = hash_prefixes.collect::<HashSet<_>>().into_iter().collect();
+        let hash_prefixes: Vec<_> = hash_prefixes
+            .map(|hash_prefix| {
+                if hash_prefix.is_empty() {
+                    Err(anyhow!("Hash prefix cannot be an empty string"))
+                } else {
+                    Ok(hash_prefix)
+                }
+            })
+            .collect::<anyhow::Result<HashSet<_>>>()?
+            .into_iter()
+            .collect();
         let mut matches = vec![Vec::new(); hash_prefixes.len()];
 
         for entry in &self.documents {
@@ -897,11 +917,11 @@ impl LibraryIndex {
             }
         }
 
-        HashMatches {
+        Ok(HashMatches {
             ambiguous,
             found,
             not_found,
-        }
+        })
     }
 
     /// Read the index from disk.
