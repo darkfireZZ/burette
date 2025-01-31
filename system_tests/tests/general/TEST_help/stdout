@@ -15,6 +15,7 @@ Commands:
 Options:
   -l, --library <LIBRARY>  Path to the document library
   -h, --help               Print help (see more with '--help')
+  -V, --version            Print version
 burette is a document management system.
 
 See the README at <https://github.com/darkfireZZ/burette> for more information.
@@ -37,6 +38,9 @@ Options:
 
   -h, --help
           Print help (see a summary with '-h')
+
+  -V, --version
+          Print version
 burette is a document management system.
 
 See the README at <https://github.com/darkfireZZ/burette> for more information.
@@ -59,3 +63,6 @@ Options:
 
   -h, --help
           Print help (see a summary with '-h')
+
+  -V, --version
+          Print version

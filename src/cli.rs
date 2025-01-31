@@ -88,6 +88,7 @@ fn stdin_confirm(prompt: &str) -> anyhow::Result<bool> {
 ///
 /// See the README at <https://github.com/darkfireZZ/burette> for more information.
 #[derive(Debug, Parser)]
+#[command(version)]
 struct Cli {
     /// Path to the document library
     #[clap(long, short)]
