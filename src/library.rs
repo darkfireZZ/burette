@@ -315,29 +315,40 @@ impl Library {
     /// - No documents match the hash prefix.
     /// - The index file cannot be read.
     /// - The document cannot be copied to the output path.
+    #[allow(clippy::missing_panics_doc, reason = "This function will never panic")]
     pub fn retrieve_document<P: AsRef<Path>>(
         &self,
         hash_prefix: &str,
         out_path: Option<P>,
-    ) -> anyhow::Result<IndexEntry> {
+    ) -> anyhow::Result<sha256::Hash> {
         let index_path = self.index_path();
         let index = LibraryIndex::open(&index_path)?;
 
         let mut matches = index.find_all_hashes(iter::once(hash_prefix))?;
 
-        let found = matches.found.pop();
+        let mut found_iter = matches.found.into_iter();
+        let found = found_iter.next();
         let ambiguous = matches.ambiguous.pop();
         let not_found = matches.not_found.pop();
 
-        debug_assert_eq!(matches.found.len(), 0);
+        debug_assert_eq!(found_iter.next(), None);
         debug_assert_eq!(matches.ambiguous.len(), 0);
         debug_assert_eq!(matches.not_found.len(), 0);
 
         match (found, ambiguous, not_found) {
-            (Some(entry), None, None) => {
+            (Some(hash), None, None) => {
+                #[allow(
+                    clippy::single_match_else,
+                    reason = "The code is more readable this way"
+                )]
                 let out_path = match out_path {
                     Some(p) => p.as_ref().to_owned(),
-                    None => PathBuf::from(entry.default_file_name()),
+                    None => {
+                        let entry = index
+                            .get_document(&hash)
+                            .expect("we know the hash is in the index");
+                        PathBuf::from(entry.default_file_name())
+                    }
                 };
                 let exists = out_path.try_exists().with_context(|| {
                     format!(
@@ -348,7 +359,7 @@ impl Library {
                 if exists {
                     bail!("Output file {} already exists", out_path.display());
                 }
-                let store_path = self.document_store_dir().join(entry.hash().to_string());
+                let store_path = self.document_store_dir().join(hash.to_string());
                 fs::copy(&store_path, &out_path).with_context(|| {
                     format!(
                         "Failed to copy document from {} to {}",
@@ -356,7 +367,7 @@ impl Library {
                         out_path.display()
                     )
                 })?;
-                Ok(entry.clone())
+                Ok(hash)
             }
             (None, Some(ambiguous), None) => {
                 bail!(
@@ -408,11 +419,7 @@ impl Library {
         let matches = index.find_all_hashes(hash_prefixes)?;
 
         let not_found = matches.not_found;
-        let ambiguous = matches
-            .ambiguous
-            .iter()
-            .map(AmbiguousHashMatch::to_owned)
-            .collect();
+        let ambiguous = matches.ambiguous;
 
         // This could be a HashSet, but we expect the number of documents to be small, so a Vec is
         // fine.
@@ -420,18 +427,14 @@ impl Library {
         let mut errors = Vec::new();
 
         let document_store_dir = self.document_store_dir();
-        for entry in matches.found {
-            let hash = entry.hash();
+        for hash in matches.found {
             let path = document_store_dir.join(hash.to_string());
             match fs::remove_file(&path) {
-                Ok(()) => to_be_removed.push(*hash),
+                Ok(()) => to_be_removed.push(hash),
                 Err(error) => {
                     let error = anyhow::Error::from(error)
                         .context(format!("Failed to remove document at {}", path.display()));
-                    errors.push(RemovalError {
-                        entry: entry.clone(),
-                        error,
-                    });
+                    errors.push(RemovalError { hash, error });
                 }
             }
         }
@@ -685,7 +688,7 @@ impl Display for NotAFile {
 /// See [`Library::remove_all()`] for details.
 #[derive(Debug)]
 pub struct RemovalResults<'a> {
-    ambiguous: Vec<AmbiguousHashMatchOwned<'a>>,
+    ambiguous: Vec<AmbiguousHashMatch<'a>>,
     errors: Vec<RemovalError>,
     not_found: Vec<&'a str>,
     removed: Vec<IndexEntry>,
@@ -700,7 +703,7 @@ impl<'a> RemovalResults<'a> {
 
     /// Entries that could not be removed because multiple documents matched the hash prefix.
     #[must_use]
-    pub fn ambiguous(&self) -> &[AmbiguousHashMatchOwned<'a>] {
+    pub fn ambiguous(&self) -> &[AmbiguousHashMatch<'a>] {
         &self.ambiguous
     }
 
@@ -726,15 +729,15 @@ impl<'a> RemovalResults<'a> {
 /// Error that occurred when trying to remove a document from the library.
 #[derive(Debug)]
 pub struct RemovalError {
-    entry: IndexEntry,
+    hash: sha256::Hash,
     error: anyhow::Error,
 }
 
 impl RemovalError {
-    /// Get the entry that could not be removed.
+    /// Get the hash of the document that could not be removed.
     #[must_use]
-    pub fn entry(&self) -> &IndexEntry {
-        &self.entry
+    pub fn hash(&self) -> &sha256::Hash {
+        &self.hash
     }
 
     /// Get the error that occurred when trying to remove the entry.
@@ -837,6 +840,13 @@ impl LibraryIndex {
         }
     }
 
+    /// Find a document in the index that matches the specified hash.
+    ///
+    /// Returns `None` if no document matches the hash.
+    fn get_document(&self, hash: &sha256::Hash) -> Option<&IndexEntry> {
+        self.documents.iter().find(|entry| entry.hash == *hash)
+    }
+
     /// Find a document in the index that matches the specified hash prefix.
     ///
     /// - If no document matches the hash prefix, [`FindHashMut::NotFound`] is returned.
@@ -866,18 +876,18 @@ impl LibraryIndex {
         })
     }
 
-    // TODO: It should be clarified what happens if hashes are prefixes of each other
     /// Find all documents in the index that match the specified hash prefixes.
+    ///
+    /// If a document is matched by multiple hash prefixes, it will only be included in the results
+    /// once.
+    /// This is the case if a hash prefix is a prefix of another hash prefix.
     ///
     /// # Errors
     ///
     /// If any of the hash prefixes are the empty string, an error is returned.
-    fn find_all_hashes<'hash, 'entry, H>(
-        &'entry self,
-        hash_prefixes: H,
-    ) -> anyhow::Result<HashMatches<'hash, 'entry>>
+    fn find_all_hashes<'a, H>(&self, hash_prefixes: H) -> anyhow::Result<HashMatches<'a>>
     where
-        H: Iterator<Item = &'hash str>,
+        H: Iterator<Item = &'a str>,
     {
         // Collect the hashes into a HashSet to remove duplicates.
         let hash_prefixes: Vec<_> = hash_prefixes
@@ -893,23 +903,25 @@ impl LibraryIndex {
             .collect();
         let mut matches = vec![Vec::new(); hash_prefixes.len()];
 
-        for entry in &self.documents {
-            let entry_hash = entry.hash().to_string();
+        for hash in self.documents.iter().map(|entry| *entry.hash()) {
+            let hash_str = hash.to_string();
             for (i, hash_prefix) in hash_prefixes.iter().enumerate() {
-                if entry_hash.starts_with(hash_prefix) {
-                    matches[i].push(entry);
+                if hash_str.starts_with(hash_prefix) {
+                    matches[i].push(hash);
                 }
             }
         }
 
         let mut ambiguous = Vec::new();
         let mut not_found = Vec::new();
-        let mut found = Vec::new();
+        let mut found = HashSet::new();
 
         for (hash_prefix, matches) in hash_prefixes.iter().zip(matches) {
             match matches.len() {
                 0 => not_found.push(*hash_prefix),
-                1 => found.push(matches[0]),
+                1 => {
+                    found.insert(matches[0]);
+                }
                 _ => ambiguous.push(AmbiguousHashMatch {
                     hash_prefix,
                     matches,
@@ -968,46 +980,29 @@ enum FindHashMut<'a> {
 
 /// Results from [`LibraryIndex::find_all_hashes()`].
 #[derive(Debug)]
-struct HashMatches<'hash, 'entry> {
-    ambiguous: Vec<AmbiguousHashMatch<'hash, 'entry>>,
-    found: Vec<&'entry IndexEntry>,
-    not_found: Vec<&'hash str>,
+struct HashMatches<'a> {
+    ambiguous: Vec<AmbiguousHashMatch<'a>>,
+    found: HashSet<sha256::Hash>,
+    not_found: Vec<&'a str>,
 }
 
 /// Information about a hash prefix that matched multiple documents in the index.
 #[derive(Debug)]
-struct AmbiguousHashMatch<'hash, 'entry> {
-    hash_prefix: &'hash str,
-    matches: Vec<&'entry IndexEntry>,
+pub struct AmbiguousHashMatch<'a> {
+    hash_prefix: &'a str,
+    matches: Vec<sha256::Hash>,
 }
 
-impl<'hash, 'entry> AmbiguousHashMatch<'hash, 'entry> {
-    fn to_owned(&self) -> AmbiguousHashMatchOwned<'hash> {
-        AmbiguousHashMatchOwned {
-            hash_prefix: self.hash_prefix,
-            matches: self.matches.iter().copied().cloned().collect(),
-        }
-    }
-}
-
-/// Information about a hash prefix that matched multiple documents in the index.
-#[derive(Debug)]
-pub struct AmbiguousHashMatchOwned<'hash> {
-    hash_prefix: &'hash str,
-    matches: Vec<IndexEntry>,
-}
-
-impl<'hash> AmbiguousHashMatchOwned<'hash> {
-    /// The hash prefix that matched multiple documents.
+impl<'a> AmbiguousHashMatch<'a> {
+    /// Return the hash prefix that matched multiple documents.
     #[must_use]
-    pub fn hash_prefix(&self) -> &'hash str {
+    pub fn hash_prefix(&self) -> &'a str {
         self.hash_prefix
     }
 
-    /// The documents that matched the hash prefix.
-    #[must_use]
-    pub fn matches(&self) -> &[IndexEntry] {
-        &self.matches
+    /// Return the hashes of the documents that matched the hash prefix.
+    pub fn matches(&self) -> impl Iterator<Item = &sha256::Hash> {
+        self.matches.iter()
     }
 }
 

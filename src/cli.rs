@@ -324,11 +324,7 @@ impl Cli {
                     }
                     eprintln!("Errors:");
                     for error in results.errors() {
-                        eprintln!(
-                            "{}: {}",
-                            error.entry().hash().to_short_string(),
-                            error.error()
-                        );
+                        eprintln!("{}: {}", error.hash().to_short_string(), error.error());
                     }
                 }
 
