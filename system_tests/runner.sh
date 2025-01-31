@@ -64,7 +64,8 @@ for sys_test_rel in $TESTS; do
 done
 
 if [ $FAILED -eq 0 ]; then
-    echo -e "\033[0;32mAll tests passed\033[0m" >&2
+    TEST_COUNT=$(echo $TESTS | wc -w)
+    echo -e "\033[0;32mAll $TEST_COUNT system tests passed\033[0m" >&2
     exit 0
 else
     if [ $FAILED -eq 1 ]; then
