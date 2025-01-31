@@ -1,5 +1,7 @@
 
  - Add README
+ - Correct default help output
  - Finish all TODOs
  - Test for library directory structure
  - Make git repo public
+ - Make output of subcmd_remove/TEST_multiple_partially_ambiguous_subprefixes deterministic
