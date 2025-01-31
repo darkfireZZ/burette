@@ -30,7 +30,7 @@ After you have `cargo` installed, you can install `burette` by running the
 following command:
 
 ```sh
-cargo install --git https://github.com/darkfireZZ/burette
+cargo install --git https://github.com/darkfireZZ/burette --tag v0.1.0
 ```
 
 ## Usage
