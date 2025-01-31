@@ -1,4 +1,4 @@
-Command line interface for the application
+burette is a document management system
 
 Usage: burette [OPTIONS] <COMMAND>
 
@@ -14,8 +14,10 @@ Commands:
 
 Options:
   -l, --library <LIBRARY>  Path to the document library
-  -h, --help               Print help
-Command line interface for the application
+  -h, --help               Print help (see more with '--help')
+burette is a document management system.
+
+See the README at <https://github.com/darkfireZZ/burette> for more information.
 
 Usage: burette [OPTIONS] <COMMAND>
 
@@ -30,9 +32,14 @@ Commands:
   help      Print this message or the help of the given subcommand(s)
 
 Options:
-  -l, --library <LIBRARY>  Path to the document library
-  -h, --help               Print help
-Command line interface for the application
+  -l, --library <LIBRARY>
+          Path to the document library
+
+  -h, --help
+          Print help (see a summary with '-h')
+burette is a document management system.
+
+See the README at <https://github.com/darkfireZZ/burette> for more information.
 
 Usage: burette [OPTIONS] <COMMAND>
 
@@ -47,5 +54,8 @@ Commands:
   help      Print this message or the help of the given subcommand(s)
 
 Options:
-  -l, --library <LIBRARY>  Path to the document library
-  -h, --help               Print help
+  -l, --library <LIBRARY>
+          Path to the document library
+
+  -h, --help
+          Print help (see a summary with '-h')

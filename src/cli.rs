@@ -84,7 +84,9 @@ fn stdin_confirm(prompt: &str) -> anyhow::Result<bool> {
     }
 }
 
-/// Command line interface for the application.
+/// burette is a document management system.
+///
+/// See the README at <https://github.com/darkfireZZ/burette> for more information.
 #[derive(Debug, Parser)]
 struct Cli {
     /// Path to the document library

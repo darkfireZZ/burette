@@ -1,4 +1,4 @@
-Command line interface for the application
+burette is a document management system
 
 Usage: burette [OPTIONS] <COMMAND>
 
@@ -14,4 +14,4 @@ Commands:
 
 Options:
   -l, --library <LIBRARY>  Path to the document library
-  -h, --help               Print help
+  -h, --help               Print help (see more with '--help')
