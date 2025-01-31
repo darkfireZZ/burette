@@ -538,14 +538,16 @@ impl Library {
             .map(|entry| *entry.hash())
             .collect::<HashSet<_>>();
 
-        let missing_files = existing_entries
+        let mut missing_files: Vec<_> = existing_entries
             .difference(&existing_files)
             .copied()
             .collect();
-        let missing_index_entries = existing_files
+        missing_files.sort_unstable();
+        let mut missing_index_entries: Vec<_> = existing_files
             .difference(&existing_entries)
             .copied()
             .collect();
+        missing_index_entries.sort_unstable();
 
         Ok(ValidationResults {
             missing_files,
@@ -561,8 +563,8 @@ impl Library {
 /// See [`Library::validate()`] for details.
 #[derive(Debug)]
 pub struct ValidationResults {
-    missing_files: HashSet<sha256::Hash>,
-    missing_index_entries: HashSet<sha256::Hash>,
+    missing_files: Vec<sha256::Hash>,
+    missing_index_entries: Vec<sha256::Hash>,
     hash_mismatches: Vec<HashMismatch>,
     invalid_file_types: Vec<NotAFile>,
 }

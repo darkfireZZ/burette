@@ -12,7 +12,7 @@ use {
 };
 
 /// [SHA-256 hash](https://en.wikipedia.org/wiki/SHA-2).
-#[derive(Clone, Copy, Eq, PartialEq, Hash)]
+#[derive(Clone, Copy, Eq, PartialEq, Hash, Ord, PartialOrd)]
 pub struct Hash {
     bytes: [u8; 32],
 }
