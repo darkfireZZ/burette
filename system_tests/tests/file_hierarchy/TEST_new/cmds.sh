@@ -3,7 +3,7 @@
 set -e
 
 burette --library new_lib new
-ls new_lib
+tree new_lib
 
 echo
 echo 'index.json:'

@@ -1,0 +1,22 @@
+Title: Add another author? (y/n): Author: Add another author? (y/n): Add another ISBN? (y/n): Add a DOI? (y/n): 
+library
+├── burette_version
+├── documents
+│   └── e611fe80cca2d8c408f9c133c9a8baf76682b8455e698b4d40a724ef80dfd8af
+└── index.json
+
+2 directories, 3 files
+
+index.json:
+[
+  {
+    "hash": "e611fe80cca2d8c408f9c133c9a8baf76682b8455e698b4d40a724ef80dfd8af",
+    "title": "Faust: Eine Tragödie [erster Teil]",
+    "authors": [
+      "Johann Wolfgang von Goethe"
+    ],
+    "isbns": [],
+    "file_format": "application/epub+zip",
+    "doi": null
+  }
+]
