@@ -8,7 +8,7 @@ use {
         ffi::{OsStr, OsString},
         fmt::{self, Display, Formatter},
         fs::{self, File, FileType},
-        iter,
+        io, iter,
         path::{Path, PathBuf},
     },
 };
@@ -482,13 +482,21 @@ impl Library {
         let mut invalid_file_types = Vec::new();
         let mut existing_files = HashSet::new();
 
-        let dir = fs::read_dir(&document_store_dir).with_context(|| {
-            format!(
-                "Failed to read document store directory at {}",
-                document_store_dir.display()
-            )
-        })?;
-        for entry in dir {
+        let dir = match fs::read_dir(&document_store_dir) {
+            Ok(dir) => Some(dir),
+            Err(error) if error.kind() == io::ErrorKind::NotFound => None,
+            Err(error) => {
+                return Err(error).context(format!(
+                    "Failed to read document store directory at {}",
+                    document_store_dir.display()
+                ))
+            }
+        };
+
+        // We do .into_iter().flatten() to handle the case where the directory does not exist.
+        // This works because Option<T> implements IntoIterator, so Option<ReadDir> is a pair of
+        // nested iterators.
+        for entry in dir.into_iter().flatten() {
             let entry = entry.context("Failed to read directory entry of document store")?;
 
             let file_type = entry.file_type().with_context(|| {
