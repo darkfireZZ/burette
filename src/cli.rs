@@ -342,7 +342,7 @@ impl Cli {
 
                     let mut missing_files = results.missing_files();
                     if let Some(missing_file) = missing_files.next() {
-                        eprintln!("Files present in the document store but not in the index:");
+                        eprintln!("Files present in the index but not in the document store:");
                         eprintln!("{missing_file}");
                         for missing_file in missing_files {
                             eprintln!("{missing_file}");
@@ -355,7 +355,7 @@ impl Cli {
                         if printed {
                             eprintln!();
                         }
-                        eprintln!("Files present in the index but not in the document store:");
+                        eprintln!("Files present in the document store but not in the index:");
                         eprintln!("{missing_index_entry}");
                         for missing_index_entry in missing_index_entries {
                             eprintln!("{missing_index_entry}");
