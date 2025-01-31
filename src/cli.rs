@@ -280,32 +280,38 @@ impl Cli {
 
                 let mut printed = false;
 
-                if !results.removed().is_empty() {
+                let mut removed: Vec<_> = results.removed().iter().collect();
+                removed.sort_unstable_by_key(|entry| *entry.hash());
+                if !removed.is_empty() {
                     println!("Removed documents:");
-                    for doc in results.removed() {
+                    for doc in removed {
                         println!("{}: {}", doc.hash().to_short_string(), doc.title());
                     }
                     printed = true;
                 }
 
-                if !results.not_found().is_empty() {
+                let mut not_found: Vec<_> = results.not_found().iter().collect();
+                not_found.sort_unstable();
+                if !not_found.is_empty() {
                     if printed {
                         println!();
                     }
                     println!("Documents not found:");
-                    for hash_prefix in results.not_found() {
+                    for hash_prefix in not_found {
                         println!("{hash_prefix}");
                     }
                     printed = true;
                 }
 
-                if !results.ambiguous().is_empty() {
+                let mut ambiguous: Vec<_> = results.ambiguous().iter().collect();
+                ambiguous.sort_unstable_by_key(|prefix| prefix.hash_prefix());
+                if !ambiguous.is_empty() {
                     if printed {
                         println!();
                     }
                     println!("Ambiguous hash prefixes:");
-                    for ambiguous in results.ambiguous() {
-                        println!("{}", ambiguous.hash_prefix());
+                    for ambiguous_prefix in ambiguous {
+                        println!("{}", ambiguous_prefix.hash_prefix());
                     }
                     printed = true;
                 }
