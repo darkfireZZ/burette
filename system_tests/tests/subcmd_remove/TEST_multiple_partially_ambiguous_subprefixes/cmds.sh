@@ -6,14 +6,18 @@
 
 set -e
 
+LIBRARY_PATH=./library
+
+burette -l $LIBRARY_PATH new
+
 add_darwin && echo
 add_moby_dick && echo
 add_faust && echo
 add_var_chrom && echo
 echo
-burette list && echo
+burette -l $LIBRARY_PATH list && echo
 
 # $HASH_VAR_CHROM starts with 2576
-! burette remove '' 2 25 257 2576 $HASH_VAR_CHROM $HASH_DARWIN
+! burette -l $LIBRARY_PATH remove '' 2 25 257 2576 $HASH_VAR_CHROM $HASH_DARWIN
 echo
-burette list
+burette -l $LIBRARY_PATH list

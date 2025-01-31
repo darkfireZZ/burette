@@ -3,6 +3,6 @@
  - Finish all TODOs
  - Test for library directory structure
  - Make git repo public
- - Fix subcmd_remove/TEST_multiple_partially_ambiguous_subprefixes
  - Fix subcmd_validate/TEST_missing_version_file
  - Fix subcmd_validate/TEST_missing_index
+ - Test for empty library path

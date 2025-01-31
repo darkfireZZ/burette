@@ -26,7 +26,8 @@ cargo build || exit 1
 TMP_DIR=$(mktemp -d)
 export HOME="$TMP_DIR"
 
-export TEST_DOCS="$TEST_DIR/test_docs"
+export TEST_DOCS="$TEST_DIR/test_docs/"
+export LIBRARY_PATH="$HOME/.book-store/"
 
 # Load the helper functions
 # - `add_darwin`
@@ -40,7 +41,7 @@ GIT_DIR=$(git -C "$TEST_DIR" rev-parse --show-toplevel 2>/dev/null)
 # Overwrite the PATH to include the version of the binary we just built
 export PATH="$GIT_DIR/target/debug:$PATH"
 
-SYS_TESTS="$TEST_DIR/tests"
+SYS_TESTS="$TEST_DIR/tests/"
 
 cd $SYS_TESTS
 
