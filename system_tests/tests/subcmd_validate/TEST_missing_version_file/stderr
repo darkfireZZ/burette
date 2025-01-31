@@ -1,1 +1,1 @@
-Error: Failed to open library: Failed to read version file from /tmp/tmp.8F5HFAycAC/.book-store/burette_version: No such file or directory (os error 2)
+Error: Failed to open library: Failed to read version file from ./.book-store/burette_version: No such file or directory (os error 2)

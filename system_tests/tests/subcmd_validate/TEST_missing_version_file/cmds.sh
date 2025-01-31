@@ -9,6 +9,8 @@ add_moby_dick && echo
 echo
 burette list
 
-rm $HOME/.book-store/burette_version
+rm "$LIBRARY_PATH"/burette_version
 
-! burette validate
+# We need to set the library path to a relative path so that the test output
+# will not contain $HOME which may vary.
+! burette -l ./.book-store validate
