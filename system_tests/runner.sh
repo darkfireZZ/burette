@@ -58,15 +58,20 @@ for sys_test_rel in $TESTS; do
         echo -e " \033[0;32mpassed\033[0m" >&2
     else
         echo -e " \033[0;31mfailed\033[0m" >&2
-        FAILED=1
+        FAILED=$((FAILED + 1))
     fi
     rm -r $TMP_DIR || exit 1
 done
 
 if [ $FAILED -eq 0 ]; then
     echo -e "\033[0;32mAll tests passed\033[0m" >&2
+    exit 0
 else
-    echo -e "\033[0;31mSome tests failed\033[0m" >&2
+    if [ $FAILED -eq 1 ]; then
+        TESTS="test"
+    else
+        TESTS="tests"
+    fi
+    echo -e "\033[0;31m$FAILED $TESTS failed\033[0m" >&2
+    exit 1
 fi
-
-exit $FAILED
