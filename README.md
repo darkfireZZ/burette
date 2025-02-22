@@ -69,9 +69,15 @@ burette remove <sha256-hash-of-document>
 ### Retrieving documents
 
 To retrieve a document from the library, you can use the `get` subcommand.
+
 ```sh
-burette get <sha256-hash-of-document>
+burette get <identifier>
 ```
+
+`<identifier>` can be one of the following:
+ - A prefix of the SHA-256 hash of the document
+ - A ISBN of the document
+ - The DOI of the document
 
 This will place the document in the current directory with some default name.
 If you want to specify a different name or location, you can use the `--output`
