@@ -1,29 +1,29 @@
 Retrieve a document from the library
 
-Usage: burette get [OPTIONS] <HASH_PREFIX>
+Usage: burette get [OPTIONS] <IDENTIFIER>
 
 Arguments:
-  <HASH_PREFIX>  Hash prefix of the document to retrieve
+  <IDENTIFIER>  Identifier of the document to retrieve (hash prefix, DOI or ISBN)
 
 Options:
   -o, --output <OUTPUT>  Path to save the document to
   -h, --help             Print help
 Retrieve a document from the library
 
-Usage: burette get [OPTIONS] <HASH_PREFIX>
+Usage: burette get [OPTIONS] <IDENTIFIER>
 
 Arguments:
-  <HASH_PREFIX>  Hash prefix of the document to retrieve
+  <IDENTIFIER>  Identifier of the document to retrieve (hash prefix, DOI or ISBN)
 
 Options:
   -o, --output <OUTPUT>  Path to save the document to
   -h, --help             Print help
 Retrieve a document from the library
 
-Usage: burette get [OPTIONS] <HASH_PREFIX>
+Usage: burette get [OPTIONS] <IDENTIFIER>
 
 Arguments:
-  <HASH_PREFIX>  Hash prefix of the document to retrieve
+  <IDENTIFIER>  Identifier of the document to retrieve (hash prefix, DOI or ISBN)
 
 Options:
   -o, --output <OUTPUT>  Path to save the document to

@@ -8,7 +8,7 @@ use {
         ffi::{OsStr, OsString},
         fmt::{self, Display, Formatter},
         fs::{self, File, FileType},
-        io, iter,
+        io,
         path::{Path, PathBuf},
     },
 };
@@ -283,29 +283,20 @@ impl Library {
         let index_path = self.index_path();
         let mut index = LibraryIndex::open(&index_path)?;
 
-        match index.find_hash_mut(hash_prefix)? {
-            FindHashMut::NotFound => {
-                bail!("No document found with hash prefix '{}'", hash_prefix);
-            }
-            FindHashMut::Found(entry) => {
-                edit(entry)?;
-            }
-            FindHashMut::Ambiguous => {
-                bail!(
-                    "Multiple documents found matching hash prefix '{}'",
-                    hash_prefix
-                );
-            }
-        }
+        let entry = index.find_hash_mut(hash_prefix)?.found_or_error()?;
+        edit(entry)?;
 
         index.save(&index_path)
     }
 
     /// Retrieve a document from the library.
     ///
-    /// The document matching the given hash prefix is copied to the specified output path.
-    /// If the output path is `None`, the document is copied to the current working directory.
-    /// If multiple or no documents match the hash prefix, an error is returned.
+    /// `identifier` can be an ISBN, DOI or a hash prefix.
+    ///
+    /// The matching document is copied to the specified output path.
+    /// If no output path is provided, the document is copied to the current working directory with
+    /// a file name based on the document's title.
+    /// If multiple or no documents match, an error is returned.
     ///
     /// # Errors
     ///
@@ -315,71 +306,39 @@ impl Library {
     /// - No documents match the hash prefix.
     /// - The index file cannot be read.
     /// - The document cannot be copied to the output path.
-    #[allow(clippy::missing_panics_doc, reason = "This function will never panic")]
     pub fn retrieve_document<P: AsRef<Path>>(
         &self,
-        hash_prefix: &str,
+        identifier: &str,
         out_path: Option<P>,
-    ) -> anyhow::Result<sha256::Hash> {
+    ) -> anyhow::Result<()> {
         let index_path = self.index_path();
         let index = LibraryIndex::open(&index_path)?;
 
-        let mut matches = index.find_all_hashes(iter::once(hash_prefix))?;
+        let entry = index.find_document(identifier)?;
 
-        let mut found_iter = matches.found.into_iter();
-        let found = found_iter.next();
-        let ambiguous = matches.ambiguous.pop();
-        let not_found = matches.not_found.pop();
-
-        debug_assert_eq!(found_iter.next(), None);
-        debug_assert_eq!(matches.ambiguous.len(), 0);
-        debug_assert_eq!(matches.not_found.len(), 0);
-
-        match (found, ambiguous, not_found) {
-            (Some(hash), None, None) => {
-                #[allow(
-                    clippy::single_match_else,
-                    reason = "The code is more readable this way"
-                )]
-                let out_path = match out_path {
-                    Some(p) => p.as_ref().to_owned(),
-                    None => {
-                        let entry = index
-                            .get_document(&hash)
-                            .expect("we know the hash is in the index");
-                        PathBuf::from(entry.default_file_name())
-                    }
-                };
-                let exists = out_path.try_exists().with_context(|| {
-                    format!(
-                        "Could not determine if output file exists at {}",
-                        out_path.display()
-                    )
-                })?;
-                if exists {
-                    bail!("Output file {} already exists", out_path.display());
-                }
-                let store_path = self.document_store_dir().join(hash.to_string());
-                fs::copy(&store_path, &out_path).with_context(|| {
-                    format!(
-                        "Failed to copy document from {} to {}",
-                        store_path.display(),
-                        out_path.display()
-                    )
-                })?;
-                Ok(hash)
-            }
-            (None, Some(ambiguous), None) => {
-                bail!(
-                    "Multiple documents match hash prefix '{}'",
-                    ambiguous.hash_prefix,
-                );
-            }
-            (None, None, Some(hash_prefix)) => {
-                bail!("No documents match hash prefix '{}'", hash_prefix);
-            }
-            _ => unreachable!(),
+        let out_path = match out_path {
+            Some(p) => p.as_ref().to_owned(),
+            None => PathBuf::from(entry.default_file_name()),
+        };
+        let exists = out_path.try_exists().with_context(|| {
+            format!(
+                "Could not determine if output file exists at {}",
+                out_path.display()
+            )
+        })?;
+        if exists {
+            bail!("Output file {} already exists", out_path.display());
         }
+        let store_path = self.document_store_dir().join(entry.hash().to_string());
+        fs::copy(&store_path, &out_path).with_context(|| {
+            format!(
+                "Failed to copy document from {} to {}",
+                store_path.display(),
+                out_path.display()
+            )
+        })?;
+
+        Ok(())
     }
 
     /// Iterate over the metadata of all documents in the library.
@@ -840,40 +799,106 @@ impl LibraryIndex {
         }
     }
 
-    /// Find a document in the index that matches the specified hash.
+    /// Find a document in the index.
     ///
-    /// Returns `None` if no document matches the hash.
-    fn get_document(&self, hash: &sha256::Hash) -> Option<&IndexEntry> {
-        self.documents.iter().find(|entry| entry.hash == *hash)
+    /// `identifier` can be an ISBN, DOI or a hash prefix.
+    /// The document matching the identifier is returned.
+    ///
+    /// # Errors
+    ///
+    /// An error is returned if
+    /// - `identifier` matches multiple documents
+    /// - `identifier` does not match any document
+    ///
+    fn find_document(&self, identifier: &str) -> anyhow::Result<&IndexEntry> {
+        // If the identifier is an ISBN, search for a document with that ISBN.
+        if let Ok(isbn) = identifier.parse::<Isbn13>() {
+            for entry in &self.documents {
+                if entry.isbns().any(|entry_isbn| *entry_isbn == isbn) {
+                    return Ok(entry);
+                }
+            }
+            return Err(anyhow!("No document found with ISBN {}", isbn));
+        }
+
+        // The identifier might be a DOI. Search for a document with that DOI.
+        for entry in &self.documents {
+            if entry.doi() == Some(identifier) {
+                return Ok(entry);
+            }
+        }
+
+        // If the identifier is not an ISBN or DOI, it is assumed to be a hash prefix.
+        self.find_hash(identifier)?.found_or_error()
     }
 
-    /// Find a document in the index that matches the specified hash prefix.
-    ///
-    /// - If no document matches the hash prefix, [`FindHashMut::NotFound`] is returned.
-    /// - If exactly one document matches the hash prefix, [`FindHashMut::Found`] is returned with a mutable reference
-    ///   to the document.
-    /// - If multiple documents match the hash prefix, [`FindHashMut::Ambiguous`] is returned with a
-    ///   list of the matching documents.
+    /// Find all documents in the index that match the specified hash prefix.
     ///
     /// # Errors
     ///
     /// If `hash_prefix` is the empty string, an error is returned.
-    fn find_hash_mut<'a>(&'a mut self, hash_prefix: &str) -> anyhow::Result<FindHashMut<'a>> {
+    fn find_hash_matches(&self, hash_prefix: &str) -> anyhow::Result<Vec<usize>> {
         if hash_prefix.is_empty() {
             bail!("Hash prefix cannot be an empty string");
         }
 
-        let mut matches = Vec::new();
-        for (i, entry) in self.documents.iter().enumerate() {
-            if entry.hash().to_string().starts_with(hash_prefix) {
-                matches.push(i);
-            }
-        }
-        Ok(match matches.len() {
-            0 => FindHashMut::NotFound,
-            1 => FindHashMut::Found(&mut self.documents[matches[0]]),
-            _ => FindHashMut::Ambiguous,
-        })
+        Ok(self
+            .documents
+            .iter()
+            .enumerate()
+            .filter_map(|(i, entry)| {
+                if entry.hash().to_string().starts_with(hash_prefix) {
+                    Some(i)
+                } else {
+                    None
+                }
+            })
+            .collect())
+    }
+
+    /// Find a document in the index that matches the specified hash prefix.
+    ///
+    /// - If no document matches the hash prefix, [`FindHash::NotFound`] is returned.
+    /// - If exactly one document matches the hash prefix, [`FindHash::Found`] is returned with a
+    ///   reference to the document.
+    /// - If multiple documents match the hash prefix, [`FindHash::Ambiguous`] is returned.
+    ///
+    /// See also [`LibraryIndex::find_hash_mut()`].
+    ///
+    /// # Errors
+    ///
+    /// If `hash_prefix` is the empty string, an error is returned.
+    fn find_hash<'a>(&'a self, hash_prefix: &str) -> anyhow::Result<FindHash<&'a IndexEntry>> {
+        self.find_hash_matches(hash_prefix)
+            .map(|matches| match matches.len() {
+                0 => FindHash::NotFound,
+                1 => FindHash::Found(&self.documents[matches[0]]),
+                _ => FindHash::Ambiguous,
+            })
+    }
+
+    /// Find a document in the index that matches the specified hash prefix.
+    ///
+    /// - If no document matches the hash prefix, [`FindHash::NotFound`] is returned.
+    /// - If exactly one document matches the hash prefix, [`FindHash::Found`] is returned with a mutable reference
+    ///   to the document.
+    /// - If multiple documents match the hash prefix, [`FindHash::Ambiguous`] is returned.
+    ///
+    /// See also [`LibraryIndex::find_hash()`].
+    ///
+    /// # Errors
+    ///
+    /// If `hash_prefix` is the empty string, an error is returned.
+    fn find_hash_mut<'a>(
+        &'a mut self,
+        hash_prefix: &str,
+    ) -> anyhow::Result<FindHash<&'a mut IndexEntry>> {
+        self.find_hash_matches(hash_prefix)
+            .map(|matches| match matches.len() {
+                0 => FindHash::NotFound,
+                1 => FindHash::Found(&mut self.documents[matches[0]]),
+                _ => FindHash::Ambiguous,
+            })
     }
 
     /// Find all documents in the index that match the specified hash prefixes.
@@ -967,15 +992,25 @@ impl LibraryIndex {
     }
 }
 
-/// Results from [`LibraryIndex::find_hash_mut()`].
+/// Results from [`LibraryIndex::find_hash()`] and [`LibraryIndex::find_hash_mut()`].
 #[derive(Debug)]
-enum FindHashMut<'a> {
+enum FindHash<E> {
     /// No document matched the hash prefix.
     NotFound,
     /// Exactly one document matched the hash prefix.
-    Found(&'a mut IndexEntry),
+    Found(E),
     /// Multiple documents matched the hash prefix.
     Ambiguous,
+}
+
+impl<E> FindHash<E> {
+    pub fn found_or_error(self) -> anyhow::Result<E> {
+        match self {
+            FindHash::NotFound => Err(anyhow!("No document found with hash prefix")),
+            FindHash::Found(entry) => Ok(entry),
+            FindHash::Ambiguous => Err(anyhow!("Multiple documents found matching hash prefix")),
+        }
+    }
 }
 
 /// Results from [`LibraryIndex::find_all_hashes()`].

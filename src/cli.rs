@@ -245,13 +245,10 @@ impl Cli {
 
                 Ok(ExitCode::SUCCESS)
             }
-            Command::Get {
-                hash_prefix,
-                output,
-            } => {
+            Command::Get { identifier, output } => {
                 let library_path = self.library_path()?;
                 let library = Library::open(library_path)?;
-                library.retrieve_document(hash_prefix, output.as_ref())?;
+                library.retrieve_document(identifier, output.as_ref())?;
                 Ok(ExitCode::SUCCESS)
             }
             Command::List => {
@@ -417,8 +414,8 @@ enum Command {
     },
     /// Retrieve a document from the library
     Get {
-        /// Hash prefix of the document to retrieve
-        hash_prefix: String,
+        /// Identifier of the document to retrieve (hash prefix, DOI or ISBN)
+        identifier: String,
         /// Path to save the document to
         #[clap(long, short)]
         output: Option<PathBuf>,
